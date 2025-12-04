@@ -2,7 +2,7 @@ from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
-from .models import Difficulty, QueryResponse
+from .models import Difficulty, NegativeQueryList, QueryResponse
 
 
 def create_openrouter_model(model_name: str, api_key: str) -> OpenRouterModel:
@@ -45,17 +45,24 @@ def validate_multi_hop_output(ctx: RunContext, output: QueryResponse) -> QueryRe
 
 
 negative_agent = Agent(
-    output_type=QueryResponse,
+    output_type=NegativeQueryList,
     retries=2,
 )
 
 
 @negative_agent.output_validator
-def validate_negative_output(ctx: RunContext, output: QueryResponse) -> QueryResponse:
-    if output.difficulty not in [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]:
-        raise ModelRetry(
-            f"Difficulty must be one of {list(Difficulty)}, got {output.difficulty}"
-        )
-    if not output.category or not isinstance(output.category, str):
-        raise ModelRetry("Category must be a non-empty string")
+def validate_negative_output(
+    ctx: RunContext, output: NegativeQueryList
+) -> NegativeQueryList:
+    for i, query in enumerate(output.queries):
+        if query.difficulty not in [
+            Difficulty.EASY,
+            Difficulty.MEDIUM,
+            Difficulty.HARD,
+        ]:
+            raise ModelRetry(
+                f"Query {i}: Difficulty must be one of {list(Difficulty)}, got {query.difficulty}"
+            )
+        if not query.category or not isinstance(query.category, str):
+            raise ModelRetry(f"Query {i}: Category must be a non-empty string")
     return output

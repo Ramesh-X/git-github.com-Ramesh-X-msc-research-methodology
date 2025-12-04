@@ -15,7 +15,7 @@ MULTI_HOP_PROMPT_TEMPLATE = (
 
 NEGATIVE_PROMPT_TEMPLATE = (
     BASE_INSTRUCTIONS
-    + "\n\nContext (one or more pages):\n\n{content}\n\nFull KB Topic Summary:\n\n{kb_summary}\n\nNotes: Generate questions that sound KB-related but ask for unanswerable specifics to trick vector search. The question should be semantically close to topics in the KB but require information not present anywhere in the full KB. Set ground_truth to 'I don't know based on the KB.'"
+    + "\n\nFull KB Topic Summary:\n\n{kb_summary}\n\nNotes: Generate {num_queries} distinct questions that sound KB-related but ask for unanswerable specifics to trick vector search. Each question should be semantically close to topics in the KB but require information not present anywhere in the full KB. Set ground_truth to 'I don't know based on the KB.' for each. Ensure all questions are unique and varied."
 )
 
 __all__ = [
@@ -33,5 +33,7 @@ def build_multi_hop_prompt(content_a: str, content_b: str) -> str:
     return MULTI_HOP_PROMPT_TEMPLATE.format(content_a=content_a, content_b=content_b)
 
 
-def build_negative_prompt(content: str, kb_summary: str) -> str:
-    return NEGATIVE_PROMPT_TEMPLATE.format(content=content, kb_summary=kb_summary)
+def build_negative_prompt(kb_summary: str, num_queries: int) -> str:
+    return NEGATIVE_PROMPT_TEMPLATE.format(
+        kb_summary=kb_summary, num_queries=num_queries
+    )

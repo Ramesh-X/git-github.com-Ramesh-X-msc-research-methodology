@@ -46,6 +46,10 @@ class QueryResponse(BaseModel):
     category: Optional[str] = None
 
 
+class NegativeQueryList(BaseModel):
+    queries: List[QueryResponse]
+
+
 class Structure(BaseModel):
     num_pages: int = Field(..., gt=0)
     pages: List[PageMeta] = []

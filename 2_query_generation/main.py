@@ -15,8 +15,8 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 MODEL = os.getenv("OPENROUTER_MODEL", "x-ai/grok-4.1-fast:free")
 KB_DIR = os.getenv("KB_DIR", "output/kb")
 NUM_DIRECT = int(os.getenv("NUM_DIRECT", "100"))
-NUM_MULTI_HOP = int(os.getenv("NUM_MULTI_HOP", "50"))
-NUM_NEGATIVE = int(os.getenv("NUM_NEGATIVE", "50"))
+NUM_MULTI_HOP = int(os.getenv("NUM_MULTI_HOP", "25"))
+NUM_NEGATIVE = int(os.getenv("NUM_NEGATIVE", "25"))
 DRY_RUN = os.getenv("DRY_RUN", "true").lower() == "true"
 OVERWRITE = os.getenv("OVERWRITE", "false").lower() == "true"
 

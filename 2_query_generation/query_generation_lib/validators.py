@@ -18,6 +18,22 @@ def validate_query(q: Query) -> bool:
     if q.ground_truth is None:
         logger.error("Ground truth missing for id %s", q.query_id)
         return False
+
+    # For negative queries, ground_truth must contain refusal phrase
+    if q.query_type.value == "negative":
+        gt_lower = str(q.ground_truth).lower()
+        if not (
+            "i don't know" in gt_lower
+            or "unknown" in gt_lower
+            or "not available" in gt_lower
+        ):
+            logger.error(
+                "Negative query %s ground_truth does not contain refusal phrase: %s",
+                q.query_id,
+                q.ground_truth,
+            )
+            return False
+
     return True
 
 

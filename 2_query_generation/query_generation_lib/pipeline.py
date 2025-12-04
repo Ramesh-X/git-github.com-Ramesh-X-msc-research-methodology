@@ -138,7 +138,7 @@ def run_query_generation(
                 resp = direct_agent.run_sync(prompt)
                 qresp = resp.output
                 qobj = Query(
-                    query_id="",
+                    query_id=query_id,
                     query_type=QueryType.DIRECT,
                     query=qresp.query,
                     ground_truth=qresp.ground_truth,
@@ -151,7 +151,6 @@ def run_query_generation(
                 if not validate_query(qobj):
                     logger.warning("Validation failed for %s", qobj.query_id)
                     continue
-                qobj.query_id = query_id
                 parsed = json.loads(qobj.model_dump_json())
                 generated.append(parsed)
                 out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
@@ -205,7 +204,7 @@ def run_query_generation(
                 resp = multi_hop_agent.run_sync(prompt)
                 qresp = resp.output
                 qobj = Query(
-                    query_id="",
+                    query_id=query_id,
                     query_type=QueryType.MULTI_HOP,
                     query=qresp.query,
                     ground_truth=qresp.ground_truth,
@@ -218,7 +217,6 @@ def run_query_generation(
                 if not validate_query(qobj):
                     logger.warning("Validation failed for %s", qobj.query_id)
                     continue
-                qobj.query_id = query_id
                 parsed = json.loads(qobj.model_dump_json())
                 generated.append(parsed)
                 out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
@@ -232,59 +230,55 @@ def run_query_generation(
     # --- Negative queries ---
     # Build full KB topic summary for adversarial negative query generation
     kb_summary = build_kb_topic_summary(structure)
-    # For negative queries, sample from pages and ask for plausible-but-unanswerable question
-    for page in tqdm(
-        pages, desc="Negative queries", total=min(num_negative, len(pages))
-    ):
-        if len([q for q in generated if q["query_type"] == "negative"]) >= num_negative:
-            break
-        idx = next_idx["negative"]
-        query_id = _format_query_id(QUERY_ID_PREFIXES["negative"], idx)
-        next_idx["negative"] += 1
-        if query_id in existing_ids:
-            continue
-        content = load_page_content(kb_dir, page.filename)
-        prompt = build_negative_prompt(content, kb_summary)
+    # For negative queries, generate based on full KB summary (no specific page context)
+    num_to_generate = num_negative - len(
+        [q for q in generated if q["query_type"] == "negative"]
+    )
+    if num_to_generate > 0:
+        prompt = build_negative_prompt(kb_summary, num_to_generate)
         if dry_run:
-            qobj = {
-                "query_id": query_id,
-                "query_type": "negative",
-                "query": "(DRY) Is there a 60-day warranty that extends to accidental damage?",
-                "ground_truth": "I don't know based on the KB.",
-                "context_reference": [page.filename],
-                "metadata": {"difficulty": "hard", "category": page.category},
-            }
-            generated.append(qobj)
-            out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
-            out_f.flush()
+            for _ in tqdm(range(num_to_generate), desc="Negative queries"):
+                idx = next_idx["negative"]
+                query_id = _format_query_id(QUERY_ID_PREFIXES["negative"], idx)
+                next_idx["negative"] += 1
+                qobj = {
+                    "query_id": query_id,
+                    "query_type": "negative",
+                    "query": "(DRY) Is there a 60-day warranty that extends to accidental damage?",
+                    "ground_truth": "I don't know based on the KB.",
+                    "context_reference": [],
+                    "metadata": {"difficulty": "hard", "category": "general"},
+                }
+                generated.append(qobj)
+                out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
+                out_f.flush()
         else:
             try:
                 resp = negative_agent.run_sync(prompt)
-                qresp = resp.output
-                qobj = Query(
-                    query_id="",
-                    query_type=QueryType.NEGATIVE,
-                    query=qresp.query,
-                    ground_truth=qresp.ground_truth,
-                    context_reference=[page.filename],
-                    metadata=QueryMetadata(
-                        difficulty=qresp.difficulty,
-                        category=qresp.category or page.category,
-                    ),
-                )
-                if not validate_query(qobj):
-                    logger.warning("Validation failed for %s", qobj.query_id)
-                    continue
-                qobj.query_id = query_id
-                parsed = json.loads(qobj.model_dump_json())
-                generated.append(parsed)
-                out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
-                out_f.flush()
+                for qresp in tqdm(resp.output.queries, desc="Negative queries"):
+                    idx = next_idx["negative"]
+                    query_id = _format_query_id(QUERY_ID_PREFIXES["negative"], idx)
+                    next_idx["negative"] += 1
+                    qobj = Query(
+                        query_id=query_id,
+                        query_type=QueryType.NEGATIVE,
+                        query=qresp.query,
+                        ground_truth=qresp.ground_truth,
+                        context_reference=[],
+                        metadata=QueryMetadata(
+                            difficulty=qresp.difficulty,
+                            category=qresp.category or "general",
+                        ),
+                    )
+                    if not validate_query(qobj):
+                        logger.warning("Validation failed for %s", qobj.query_id)
+                        continue
+                    parsed = json.loads(qobj.model_dump_json())
+                    generated.append(parsed)
+                    out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
+                    out_f.flush()
             except Exception as e:
-                logger.exception(
-                    "Failed to generate negative query %s: %s", query_id, e
-                )
-                continue
+                logger.exception("Failed to generate negative queries: %s", e)
 
     # Close output file
     out_f.close()
