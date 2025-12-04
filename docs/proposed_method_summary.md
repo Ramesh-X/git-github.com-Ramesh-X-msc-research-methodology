@@ -26,9 +26,9 @@ Reference: [6.3 Phase I - Structured Knowledge Base Generation.md](6 - Proposed 
 
 4. **Generate Evaluation Queries and Ground Truth**:
    - Per page: 1 direct question + ground truth answer.
-   - Overall: ~100 direct retrieval, ~50 multi-hop, ~50 negative/adversarial (answers not in KB; expect "I don't know").
+   - Overall: ~100 direct retrieval, ~25 multi-hop, ~25 negative/adversarial (answers not in KB; expect "I don't know").
    - Store as JSONL: `{query, ground_truth, context_reference}`.
-   - Total: ~150-200 QA pairs.
+   - Total: ~150 QA pairs.
 
 **Output**: 100 MD files + dataset structure in `structure.json` + evaluation queries in `queries.jsonl` + validated topology (Figure 6.2 Mermaid in [6.3]).
 
