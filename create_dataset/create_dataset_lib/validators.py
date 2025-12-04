@@ -1,11 +1,13 @@
-from __future__ import annotations
-from typing import List, Dict, TypedDict
+import logging
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
+from typing import Dict, List, TypedDict
+
+logger = logging.getLogger(__name__)
 
 
 class ValidationResult(TypedDict):
@@ -113,9 +115,18 @@ def run_mermaid_validation(kb_dir: str) -> ValidationResult:
 
 
 def validate_kb(kb_dir: str, expected_rot_pairs: int = 10) -> KBValidationResult:
-    return {
+    res: KBValidationResult = {
         "links": {"broken": check_links_in_kb(kb_dir)},
         "rot_pairs": {"ok": check_rot_pairs(kb_dir, expected_rot_pairs)},
         "markdownlint": run_markdownlint(kb_dir),
         "mermaid": run_mermaid_validation(kb_dir),
     }
+    logger.info(
+        "Validation summary for %s: broken=%s, rot_ok=%s, markdownlint=%s, mermaid=%s",
+        kb_dir,
+        res["links"]["broken"],
+        res["rot_pairs"]["ok"],
+        res["markdownlint"]["available"],
+        res["mermaid"]["available"],
+    )
+    return res

@@ -1,14 +1,19 @@
-import random
+import logging
 import os
+import random
 from typing import List
+
 from slugify import slugify
-from .models import Structure, Page, RotPair, Mistake, MistakeType, Severity, PageType
+
 from .constants import (
-    TOPIC_DISTRIBUTION,
-    PAGE_TYPE_DISTRIBUTION,
     MISTAKE_INJECTION_RATE,
+    PAGE_TYPE_DISTRIBUTION,
     ROT_RATE,
+    TOPIC_DISTRIBUTION,
 )
+from .models import Mistake, MistakeType, Page, PageType, RotPair, Severity, Structure
+
+logger = logging.getLogger(__name__)
 
 
 def _choose_topics(n: int) -> List[str]:
@@ -102,4 +107,7 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
     with open(os.path.join(out_dir, "structure.json"), "w", encoding="utf-8") as f:
         # Pydantic v2: use model_dump_json() to serialize with indent
         f.write(structure.model_dump_json(indent=2))
+        logger.info(
+            "Wrote structure.json to %s", os.path.join(out_dir, "structure.json")
+        )
     return structure

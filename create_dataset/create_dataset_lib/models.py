@@ -1,7 +1,7 @@
-from __future__ import annotations
-from typing import List, Optional
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class PageType(str, Enum):

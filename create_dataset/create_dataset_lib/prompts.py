@@ -1,7 +1,6 @@
-from __future__ import annotations
 from typing import List
-from .models import Page
 
+from .models import Page
 
 BASE_PROMPT = (
     "You are a content generator for a retail customer support knowledge base. "

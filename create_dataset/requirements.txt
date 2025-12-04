@@ -3,3 +3,4 @@ pydantic
 tqdm
 python-slugify
 python-dotenv
+ruff

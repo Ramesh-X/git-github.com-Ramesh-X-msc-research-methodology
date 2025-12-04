@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import Dict
 
 # Topic distributions (rounded to nearest integers when generating structure.json)

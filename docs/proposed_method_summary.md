@@ -30,7 +30,7 @@ Reference: [6.3 Phase I - Structured Knowledge Base Generation.md](6 - Proposed 
    - Store as JSONL: `{query, ground_truth, context_reference}`.
    - Total: ~150-200 QA pairs.
 
-**Output**: 100 MD files + `dataset.jsonl` + validated topology (Figure 6.2 Mermaid in [6.3]).
+**Output**: 100 MD files + dataset structure in `structure.json` + evaluation queries in `queries.jsonl` + validated topology (Figure 6.2 Mermaid in [6.3]).
 
 ### Phase 2: Implement and Run Experimental Pipelines
 Reference: [6.4 Phase II - Architectural Pipeline Variations.md](6 - Proposed Method/6.4 Phase II - Architectural Pipeline Variations.md), [6.5 Implementation and Technology Stack.md](6 - Proposed Method/6.5 Implementation and Technology Stack.md), [6.1], [6.6 Feasibility and Justification.md](6 - Proposed Method/6.6 Feasibility and Justification.md).

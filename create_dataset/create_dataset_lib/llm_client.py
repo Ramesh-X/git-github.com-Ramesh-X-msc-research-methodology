@@ -1,10 +1,13 @@
+import logging
 import os
 import time
 from typing import Optional
+
 from openai import OpenAI
 
 DEFAULT_OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 DEFAULT_MODEL = "x-ai/grok-4.1-fast:free"
+logger = logging.getLogger(__name__)
 
 
 class OpenRouterClient:
@@ -42,7 +45,11 @@ class OpenRouterClient:
                 )
                 return resp.choices[0].message.content
             except Exception as e:
+                logger.warning(
+                    "OpenRouter request failed on attempt %s: %s", attempt, e
+                )
                 if attempt == retry:
+                    logger.exception("Final attempt failed; raising")
                     raise
                 print(f"Attempt {attempt} failed: {e}. Retrying...")
                 time.sleep(backoff)

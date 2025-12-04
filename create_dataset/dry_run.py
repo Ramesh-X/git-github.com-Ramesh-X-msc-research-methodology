@@ -1,10 +1,9 @@
-"""Simple script that runs the generator in dry-run mode with a small number of pages.
-
-Usage: python scripts/dry_run.py
+"""
+Simple script that runs the generator in dry-run mode with a small number of pages.
 """
 
-from __future__ import annotations
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
