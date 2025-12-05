@@ -6,20 +6,23 @@ from typing import Dict, List
 from tqdm import tqdm
 
 from .agents import (
+    create_anchored_negative_agent,
     create_direct_agent,
     create_multi_hop_agent,
-    create_negative_agent,
     create_openrouter_model,
 )
 from .constants import (
-    QUERY_ID_PREFIXES,
     MAX_ATTEMPTS,
+    QUERY_ID_PREFIXES,
 )
+from .constants import NEGATIVE_PROMPT_TOKEN_LIMIT as DEFAULT_NEG_TOKEN_LIMIT
 from .kb_loader import (
     build_kb_topic_summary,
     find_linked_pairs,
+    get_linked_page_contents,
     load_page_content,
     load_structure,
+    stratified_sample_pages,
 )
 from .models import (
     Query,
@@ -27,9 +30,9 @@ from .models import (
     QueryType,
 )
 from .prompts import (
+    build_anchored_negative_prompt,
     build_direct_prompt,
     build_multi_hop_prompt,
-    build_negative_prompt,
 )
 from .validators import validate_query, validate_query_set
 
@@ -50,6 +53,7 @@ def run_query_generation(
     model: str,
     overwrite: bool,
     dry_run: bool,
+    negative_prompt_token_limit: int | None = None,
 ):
     logger.info("Starting query generation; DRY_RUN=%s, KB_DIR=%s", dry_run, kb_dir)
 
@@ -64,13 +68,13 @@ def run_query_generation(
         # Create the agents bound to the configured OpenRouter model
         direct_agent = create_direct_agent(or_model)
         multi_hop_agent = create_multi_hop_agent(or_model)
-        negative_agent = create_negative_agent(or_model)
+        anchored_negative_agent = create_anchored_negative_agent(or_model)
     else:
         # In dry-run mode, no model is required; we can create no-op agents or
         # use None so that any accidental access raises a clearer error.
         direct_agent = None
         multi_hop_agent = None
-        negative_agent = None
+        anchored_negative_agent = None
 
     # load existing queries file for resume support
     existing_queries: List[Dict] = []
@@ -169,7 +173,9 @@ def run_query_generation(
                         logger.warning("Validation failed for %s", qobj.query_id)
                         attempts += 1
                         if attempts >= MAX_ATTEMPTS:
-                            logger.warning("Exceeded attempts for page %s; skipping", page.filename)
+                            logger.warning(
+                                "Exceeded attempts for page %s; skipping", page.filename
+                            )
                             break
                         continue
                     parsed = json.loads(qobj.model_dump_json())
@@ -184,7 +190,10 @@ def run_query_generation(
                     )
                     attempts += 1
                     if attempts >= MAX_ATTEMPTS:
-                        logger.warning("Exceeded attempts for page %s (errors), skipping", page.filename)
+                        logger.warning(
+                            "Exceeded attempts for page %s (errors), skipping",
+                            page.filename,
+                        )
                         break
                     continue
 
@@ -251,7 +260,11 @@ def run_query_generation(
                         logger.warning("Validation failed for %s", qobj.query_id)
                         attempts += 1
                         if attempts >= MAX_ATTEMPTS:
-                            logger.warning("Exceeded attempts for multi-hop pair %s/%s; skipping", a.filename, b.filename)
+                            logger.warning(
+                                "Exceeded attempts for multi-hop pair %s/%s; skipping",
+                                a.filename,
+                                b.filename,
+                            )
                             break
                         continue
                     parsed = json.loads(qobj.model_dump_json())
@@ -266,84 +279,125 @@ def run_query_generation(
                     )
                     attempts += 1
                     if attempts >= MAX_ATTEMPTS:
-                        logger.warning("Exceeded attempts for multi-hop pair %s/%s (errors), skipping", a.filename, b.filename)
+                        logger.warning(
+                            "Exceeded attempts for multi-hop pair %s/%s (errors), skipping",
+                            a.filename,
+                            b.filename,
+                        )
                         break
                     continue
 
     # --- Negative queries ---
     # Build full KB topic summary for adversarial negative query generation
     kb_summary = build_kb_topic_summary(structure)
-    # For negative queries, generate based on full KB summary (no specific page context)
+    # For negative queries, generate anchored negatives based on KB summary and sampled anchors
     num_to_generate = num_negative - len(
         [q for q in generated if q["query_type"] == "negative"]
     )
     if num_to_generate > 0:
-        attempts = 0
+        token_limit = negative_prompt_token_limit or DEFAULT_NEG_TOKEN_LIMIT
         remaining = num_to_generate
-        while remaining > 0 and attempts < MAX_ATTEMPTS:
-            prompt = build_negative_prompt(kb_summary, remaining)
-            if dry_run:
-                for _ in tqdm(range(remaining), desc="Negative queries"):
-                    idx = next_idx["negative"]
-                    query_id = _format_query_id(QUERY_ID_PREFIXES["negative"], idx)
+        # sample anchor pages stratified by category
+        anchors = stratified_sample_pages(structure, num_to_generate)
+        for anchor in tqdm(anchors, desc="Anchored Negative queries"):
+            if remaining <= 0:
+                break
+            attempts = 0
+            while attempts < MAX_ATTEMPTS:
+                idx = next_idx["negative"]
+                query_id = _format_query_id(QUERY_ID_PREFIXES["negative"], idx)
+                # skip existing
+                if query_id in existing_ids:
                     next_idx["negative"] += 1
+                    break
+                anchor_content = load_page_content(kb_dir, anchor.filename)
+                linked_cts = get_linked_page_contents(kb_dir, anchor)
+                linked_contents_joined = "\n\n---\n\n".join(linked_cts)
+                anchor_meta = (
+                    f"Title: {anchor.title}\nFilename: {anchor.filename}\nCategory: {anchor.category or 'Uncategorized'}\n"
+                    f"Primary topic: {anchor.primary_topic or 'None'}\nSecondary topics: {', '.join(anchor.secondary_topics) if anchor.secondary_topics else 'None'}"
+                )
+
+                # Truncate anchor+linked context to token_limit characters (kb_summary left intact)
+                anchor_block = anchor_content
+                if linked_contents_joined:
+                    anchor_block = (
+                        anchor_block + "\n\n" + linked_contents_joined
+                    ).strip()
+                if len(anchor_block) > token_limit:
+                    anchor_block = anchor_block[:token_limit]
+
+                prompt = build_anchored_negative_prompt(
+                    anchor_content=anchor_block,
+                    linked_contents="",  # already merged into anchor_block for brevity
+                    anchor_meta=anchor_meta,
+                    kb_summary=kb_summary,
+                    num_queries=1,
+                )
+
+                if dry_run:
                     qobj = {
                         "query_id": query_id,
                         "query_type": "negative",
-                        "query": "(DRY) Is there a 60-day warranty that extends to accidental damage?",
+                        "query": f"(DRY) Anchor: {anchor.title}; Question: Is there a 60-day warranty that extends to accidental damage?",
                         "ground_truth": "I don't know based on the KB.",
-                        "context_reference": [],
-                        "metadata": {"difficulty": "hard", "category": "general"},
+                        "context_reference": [anchor.filename],
+                        "metadata": {
+                            "difficulty": "hard",
+                            "category": anchor.category or "general",
+                        },
                     }
                     generated.append(qobj)
                     out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
                     out_f.flush()
+                    next_idx["negative"] += 1
                     remaining -= 1
-                break
-            else:
+                    break
+
                 try:
-                    assert negative_agent is not None
-                    resp = negative_agent.run_sync(prompt)
-                    returned = 0
-                    for qresp in tqdm(resp.output.queries, desc="Negative queries"):
-                        idx = next_idx["negative"]
-                        query_id = _format_query_id(QUERY_ID_PREFIXES["negative"], idx)
-                        # build object
-                        qobj = Query(
-                            query_id=query_id,
-                            query_type=QueryType.NEGATIVE,
-                            query=qresp.query,
-                            ground_truth=qresp.ground_truth,
-                            context_reference=[],
-                            metadata=QueryMetadata(
-                                difficulty=qresp.difficulty,
-                                category=qresp.category or "general",
-                            ),
-                        )
-                        if not validate_query(qobj):
-                            logger.warning("Validation failed for %s", qobj.query_id)
-                            continue
-                        parsed = json.loads(qobj.model_dump_json())
-                        generated.append(parsed)
-                        out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
-                        out_f.flush()
-                        next_idx["negative"] += 1
-                        remaining -= 1
-                        returned += 1
-                        if remaining <= 0:
-                            break
-                    if remaining > 0:
+                    assert anchored_negative_agent is not None
+                    resp = anchored_negative_agent.run_sync(prompt)
+                    qresp = resp.output
+                    qobj = Query(
+                        query_id=query_id,
+                        query_type=QueryType.NEGATIVE,
+                        query=qresp.query,
+                        ground_truth=qresp.ground_truth,
+                        context_reference=[anchor.filename],
+                        metadata=QueryMetadata(
+                            difficulty=qresp.difficulty,
+                            category=qresp.category or anchor.category or "general",
+                        ),
+                    )
+                    if not validate_query(qobj):
+                        logger.warning("Validation failed for %s", qobj.query_id)
                         attempts += 1
-                        logger.info("Negative generator returned %d queries; remaining=%d; attempt=%d", returned, remaining, attempts)
                         if attempts >= MAX_ATTEMPTS:
-                            logger.warning("Exceeded attempts while generating negative queries; remaining=%d", remaining)
+                            logger.warning(
+                                "Exceeded attempts while generating anchored negative for %s; skipping",
+                                anchor.filename,
+                            )
                             break
                         continue
+                    parsed = json.loads(qobj.model_dump_json())
+                    generated.append(parsed)
+                    out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
+                    out_f.flush()
+                    next_idx["negative"] += 1
+                    remaining -= 1
                     break
                 except Exception as e:
                     attempts += 1
-                    logger.exception("Failed to generate negative queries: %s", e)
+                    logger.exception(
+                        "Failed to generate anchored negative for %s: %s",
+                        anchor.filename,
+                        e,
+                    )
                     if attempts >= MAX_ATTEMPTS:
+                        logger.warning(
+                            "Exceeded attempts while generating anchored negative for %s; skipping",
+                            anchor.filename,
+                        )
                         break
                     continue
 

@@ -33,6 +33,13 @@ def validate_query(q: Query) -> bool:
                 q.ground_truth,
             )
             return False
+        # Negative queries should include a single anchor context reference to mark the page used as 'bait'
+        if not q.context_reference or len(q.context_reference) != 1:
+            logger.error(
+                "Negative query %s must include exactly one anchor page in context_reference",
+                q.query_id,
+            )
+            return False
 
     return True
 

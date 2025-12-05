@@ -6,17 +6,30 @@ Configuration is specified in the top section of this file. No CLI args are acce
 import logging
 import os
 
+from create_dataset_lib.constants import (
+    DEFAULT_DRY_RUN as DEFAULT_CREATE_DRY_RUN,
+)
+from create_dataset_lib.constants import (
+    DEFAULT_MODEL as DEFAULT_CREATE_MODEL,
+)
+from create_dataset_lib.constants import (
+    DEFAULT_NUM_PAGES,
+    DEFAULT_OUTPUT_DIR,
+)
+from create_dataset_lib.constants import (
+    DEFAULT_OVERWRITE as DEFAULT_CREATE_OVERWRITE,
+)
 from dotenv import load_dotenv
 from logging_config import setup_logging
 
 # ---------------- CONFIGURATION -----------------
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-MODEL = os.getenv("OPENROUTER_MODEL", "x-ai/grok-4.1-fast:free")
-NUM_PAGES = int(os.getenv("NUM_PAGES", "100"))
-OUTPUT_DIR = os.getenv("OUTPUT_DIR", "output/kb")
-DRY_RUN = os.getenv("DRY_RUN", "true").lower() == "true"
-OVERWRITE = os.getenv("OVERWRITE", "false").lower() == "true"
+MODEL = os.getenv("OPENROUTER_MODEL", DEFAULT_CREATE_MODEL)
+NUM_PAGES = int(os.getenv("NUM_PAGES", str(DEFAULT_NUM_PAGES)))
+OUTPUT_DIR = os.getenv("OUTPUT_DIR", DEFAULT_OUTPUT_DIR)
+DRY_RUN = os.getenv("DRY_RUN", DEFAULT_CREATE_DRY_RUN).lower() == "true"
+OVERWRITE = os.getenv("OVERWRITE", str(DEFAULT_CREATE_OVERWRITE)).lower() == "true"
 # ------------------------------------------------
 
 

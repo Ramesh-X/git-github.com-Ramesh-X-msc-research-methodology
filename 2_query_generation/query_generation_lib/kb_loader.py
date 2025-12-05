@@ -64,6 +64,73 @@ def find_page_by_filename(structure: Structure, filename: str) -> Optional[PageM
     return None
 
 
+def get_linked_page_contents(kb_dir: str | Path, page_meta: PageMeta) -> List[str]:
+    """Return the content of pages listed in `page_meta.links_to` (direct links only)."""
+    contents: List[str] = []
+    for link in page_meta.links_to:
+        contents.append(load_page_content(kb_dir, link))
+    return contents
+
+
+def stratified_sample_pages(
+    structure: Structure, count: int, seed: int | None = None
+) -> List[PageMeta]:
+    """Stratified sample pages across categories. Returns up to `count` PageMeta objects.
+
+    Strategy:
+    - Group pages by category (or 'Uncategorized').
+    - Compute allocation per category proportional to category size.
+    - Sample unique pages from each category.
+    - If fewer than `count` pages are selected because of rounding, add more from largest categories.
+    """
+    import random
+
+    pages_by_cat = {}
+    for p in structure.pages:
+        cat = p.category or "Uncategorized"
+        pages_by_cat.setdefault(cat, []).append(p)
+
+    total_pages = len(structure.pages)
+    if count >= total_pages:
+        return list(structure.pages)
+
+    rng = random.Random(seed)
+    # initial allocation by proportion
+    allocated = {}
+    for cat, pages in pages_by_cat.items():
+        alloc = int(round((len(pages) / total_pages) * count))
+        allocated[cat] = min(alloc, len(pages))
+
+    # fix total allocated to equal count
+    current = sum(allocated.values())
+    remaining = count - current
+    # Sort categories by size descending for distributing remainder
+    sorted_cats = sorted(pages_by_cat.items(), key=lambda kv: len(kv[1]), reverse=True)
+    idx = 0
+    while remaining > 0 and idx < len(sorted_cats):
+        cat = sorted_cats[idx][0]
+        if allocated[cat] < len(pages_by_cat[cat]):
+            allocated[cat] += 1
+            remaining -= 1
+        idx = (idx + 1) % len(sorted_cats)
+
+    # Now sample pages per category
+    sampled: List[PageMeta] = []
+    for cat, pages in pages_by_cat.items():
+        k = allocated.get(cat, 0)
+        if k <= 0:
+            continue
+        sampled.extend(rng.sample(pages, k))
+
+    # If we've undershot due to rounding, sample more from categories with leftover pages
+    if len(sampled) < count:
+        leftover = [p for p in structure.pages if p not in sampled]
+        extra_needed = count - len(sampled)
+        sampled.extend(rng.sample(leftover, extra_needed))
+
+    return sampled[:count]
+
+
 def build_kb_topic_summary(structure: Structure) -> str:
     """Build a summary of all KB topics for adversarial negative query generation.
 

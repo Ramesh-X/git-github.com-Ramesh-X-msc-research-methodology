@@ -9,16 +9,31 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from logging_config import setup_logging
+from query_generation_lib.constants import (
+    DEFAULT_DRY_RUN,
+    DEFAULT_KB_DIR,
+    DEFAULT_MODEL,
+    DEFAULT_NUM_DIRECT,
+    DEFAULT_NUM_MULTI_HOP,
+    DEFAULT_NUM_NEGATIVE,
+    DEFAULT_OVERWRITE,
+)
+from query_generation_lib.constants import (
+    NEGATIVE_PROMPT_TOKEN_LIMIT as DEFAULT_NEG_TOKEN_LIMIT,
+)
 
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-MODEL = os.getenv("OPENROUTER_MODEL", "x-ai/grok-4.1-fast:free")
-KB_DIR = os.getenv("KB_DIR", "output/kb")
-NUM_DIRECT = int(os.getenv("NUM_DIRECT", "100"))
-NUM_MULTI_HOP = int(os.getenv("NUM_MULTI_HOP", "25"))
-NUM_NEGATIVE = int(os.getenv("NUM_NEGATIVE", "25"))
-DRY_RUN = os.getenv("DRY_RUN", "true").lower() == "true"
-OVERWRITE = os.getenv("OVERWRITE", "false").lower() == "true"
+MODEL = os.getenv("OPENROUTER_MODEL", DEFAULT_MODEL)
+KB_DIR = os.getenv("KB_DIR", DEFAULT_KB_DIR)
+NUM_DIRECT = int(os.getenv("NUM_DIRECT", str(DEFAULT_NUM_DIRECT)))
+NUM_MULTI_HOP = int(os.getenv("NUM_MULTI_HOP", str(DEFAULT_NUM_MULTI_HOP)))
+NUM_NEGATIVE = int(os.getenv("NUM_NEGATIVE", str(DEFAULT_NUM_NEGATIVE)))
+NEGATIVE_PROMPT_TOKEN_LIMIT = int(
+    os.getenv("NEGATIVE_PROMPT_TOKEN_LIMIT", str(DEFAULT_NEG_TOKEN_LIMIT))
+)
+DRY_RUN = os.getenv("DRY_RUN", DEFAULT_DRY_RUN).lower() == "true"
+OVERWRITE = os.getenv("OVERWRITE", str(DEFAULT_OVERWRITE)).lower() == "true"
 
 
 def main():
@@ -40,6 +55,7 @@ def main():
         model=MODEL,
         overwrite=OVERWRITE,
         dry_run=DRY_RUN,
+        negative_prompt_token_limit=NEGATIVE_PROMPT_TOKEN_LIMIT,
     )
     logger.info("Finished run_query_generation")
 

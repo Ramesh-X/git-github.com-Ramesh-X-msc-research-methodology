@@ -36,3 +36,7 @@ LENGTH_DISTRIBUTION = {
 }
 
 DEFAULT_OUTPUT_DIR = "output/kb"
+DEFAULT_MODEL = "x-ai/grok-4.1-fast:free"
+DEFAULT_NUM_PAGES = 100
+DEFAULT_DRY_RUN = "true"
+DEFAULT_OVERWRITE = "false"

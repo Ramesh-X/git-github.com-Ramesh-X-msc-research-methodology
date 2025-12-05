@@ -13,15 +13,19 @@ MULTI_HOP_PROMPT_TEMPLATE = (
     + "\n\nContext (Both pages):\n\n{content_a}\n\n---\n\n{content_b}\n\nNotes: The question must require information from BOTH pages to answer. Do not include the answer text that is not supported by the pages."
 )
 
-NEGATIVE_PROMPT_TEMPLATE = (
+ANCHORED_NEGATIVE_PROMPT_TEMPLATE = (
     BASE_INSTRUCTIONS
-    + "\n\nFull KB Topic Summary:\n\n{kb_summary}\n\nNotes: Generate {num_queries} distinct questions that sound KB-related but ask for unanswerable specifics to trick vector search. Each question should be semantically close to topics in the KB but require information not present anywhere in the full KB. Set ground_truth to 'I don't know based on the KB.' for each. Ensure all questions are unique and varied."
+    + "\n\nAnchor page (content):\n\n{anchor_content}\n\n"
+    + "Linked pages (content):\n\n{linked_contents}\n\n"
+    + "Anchor metadata:\n\n{anchor_meta}\n\n"
+    + "Full KB Topic Summary:\n\n{kb_summary}\n\n"
+    + "Notes: Generate {num_queries} distinct questions that are semantically close to the anchor page, and plausible to look answerable from it, but actually are not answered by the entire KB. The ground_truth must be 'I don't know based on the KB.' Keep questions specific and not general."
 )
 
 __all__ = [
     "build_direct_prompt",
     "build_multi_hop_prompt",
-    "build_negative_prompt",
+    "build_anchored_negative_prompt",
 ]
 
 
@@ -33,7 +37,17 @@ def build_multi_hop_prompt(content_a: str, content_b: str) -> str:
     return MULTI_HOP_PROMPT_TEMPLATE.format(content_a=content_a, content_b=content_b)
 
 
-def build_negative_prompt(kb_summary: str, num_queries: int) -> str:
-    return NEGATIVE_PROMPT_TEMPLATE.format(
-        kb_summary=kb_summary, num_queries=num_queries
+def build_anchored_negative_prompt(
+    anchor_content: str,
+    linked_contents: str,
+    anchor_meta: str,
+    kb_summary: str,
+    num_queries: int = 1,
+) -> str:
+    return ANCHORED_NEGATIVE_PROMPT_TEMPLATE.format(
+        anchor_content=anchor_content,
+        linked_contents=linked_contents,
+        anchor_meta=anchor_meta,
+        kb_summary=kb_summary,
+        num_queries=num_queries,
     )
