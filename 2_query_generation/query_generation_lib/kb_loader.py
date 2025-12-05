@@ -24,6 +24,7 @@ def load_structure(kb_dir: str | Path) -> Structure:
             filename=p.get("filename"),
             category=p.get("category"),
             primary_topic=p.get("primary_topic"),
+            secondary_topics=p.get("secondary_topics", []),
             links_to=p.get("links_to", []),
         )
         pages.append(page)
@@ -75,7 +76,15 @@ def build_kb_topic_summary(structure: Structure) -> str:
         cat = page.category or "Uncategorized"
         if cat not in categories:
             categories[cat] = []
-        categories[cat].append(f"- {page.title} ({page.primary_topic or 'No topic'})")
+        primary = page.primary_topic or "No topic"
+        secondary = (
+            ", ".join(page.secondary_topics)
+            if page.secondary_topics
+            else "No secondary topics"
+        )
+        categories[cat].append(
+            f"- {page.title} (Primary: {primary}; Secondary: {secondary})"
+        )
 
     for cat, pages in categories.items():
         summary_parts.append(f"Category: {cat}")

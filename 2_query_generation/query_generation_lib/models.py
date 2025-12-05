@@ -36,6 +36,7 @@ class PageMeta(BaseModel):
     filename: str
     category: Optional[str] = None
     primary_topic: Optional[str] = None
+    secondary_topics: List[str] = []
     links_to: List[str] = []
 
 
