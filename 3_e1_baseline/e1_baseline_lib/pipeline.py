@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from pathlib import Path
 from typing import List
 
@@ -49,7 +50,8 @@ def run_e1_baseline(
     # Process queries
     output_file.parent.mkdir(parents=True, exist_ok=True)
     write_mode = "w" if overwrite else "a"
-    with open(output_file, write_mode, encoding="utf-8") as f:
+    out_f = open(output_file, write_mode, encoding="utf-8")
+    try:
         for query in tqdm(queries, desc="Processing queries"):
             if query.query_id in existing_ids and not overwrite:
                 logger.info("Skipping existing query_id: %s", query.query_id)
@@ -77,7 +79,23 @@ def run_e1_baseline(
                 model=model,
                 dry_run=dry_run,
             )
-            f.write(e1_result.model_dump_json() + "\n")
+            try:
+                out_f.write(e1_result.model_dump_json() + "\n")
+                # Ensure each result is flushed to disk so a crash/resume
+                # will not lose already processed queries
+                out_f.flush()
+                os.fsync(out_f.fileno())
+            except Exception:
+                # Log but continue processing to avoid losing the run
+                logger.exception(
+                    "Failed to write result for query_id %s", query.query_id
+                )
             logger.info("Processed query_id: %s", query.query_id)
+
+    finally:
+        try:
+            out_f.close()
+        except Exception:
+            logger.exception("Failed to close output file %s", output_file)
 
     logger.info("E1 baseline completed; output in %s", output_file)

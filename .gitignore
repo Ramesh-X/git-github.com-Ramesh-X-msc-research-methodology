@@ -3,6 +3,7 @@
 !/docs/retail_customer_support_report.md
 !/docs/sythetic_retail_customer_support_srs.md
 !/docs/evaluation_query_generation_srs.md
+!/docs/experiment_1_srs.md
 
 *.pyc
 __pycache__/

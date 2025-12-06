@@ -46,6 +46,7 @@ The project is organized into sequential steps (e.g., `1_create_dataset`, `2_que
 ## Available Steps
 - `1_create_dataset`: Creates the initial dataset.
 - `2_query_generation`: Generates queries based on the dataset.
+- `3_e1_baseline`: Runs the E1 Baseline experiment (LLM answers without RAG), used to generate baseline results for Phase 2.
 - *(Future steps will follow the same structure)*
 
 ## Important Notes
