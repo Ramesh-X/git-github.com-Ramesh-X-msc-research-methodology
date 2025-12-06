@@ -33,7 +33,7 @@ NEGATIVE_PROMPT_TOKEN_LIMIT = int(
     os.getenv("NEGATIVE_PROMPT_TOKEN_LIMIT", str(DEFAULT_NEG_TOKEN_LIMIT))
 )
 DRY_RUN = os.getenv("DRY_RUN", DEFAULT_DRY_RUN).lower() == "true"
-OVERWRITE = os.getenv("OVERWRITE", str(DEFAULT_OVERWRITE)).lower() == "true"
+OVERWRITE = os.getenv("OVERWRITE", DEFAULT_OVERWRITE).lower() == "true"
 
 
 def main():

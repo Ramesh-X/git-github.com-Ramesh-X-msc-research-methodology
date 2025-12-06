@@ -29,7 +29,7 @@ MODEL = os.getenv("OPENROUTER_MODEL", DEFAULT_CREATE_MODEL)
 NUM_PAGES = int(os.getenv("NUM_PAGES", str(DEFAULT_NUM_PAGES)))
 OUTPUT_DIR = os.getenv("OUTPUT_DIR", DEFAULT_OUTPUT_DIR)
 DRY_RUN = os.getenv("DRY_RUN", DEFAULT_CREATE_DRY_RUN).lower() == "true"
-OVERWRITE = os.getenv("OVERWRITE", str(DEFAULT_CREATE_OVERWRITE)).lower() == "true"
+OVERWRITE = os.getenv("OVERWRITE", DEFAULT_CREATE_OVERWRITE).lower() == "true"
 # ------------------------------------------------
 
 
