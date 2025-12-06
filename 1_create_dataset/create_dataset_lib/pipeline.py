@@ -4,7 +4,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from .constants import DEFAULT_OUTPUT_DIR
+from .constants import DEFAULT_KB_DIR
 from .llm_client import OpenRouterClient
 from .models import Page, Structure
 from .prompts import build_placeholder_content, build_prompt
@@ -27,7 +27,7 @@ def run_generation(
     openrouter_api_key: str | None,
     model: str,
     num_pages: int = 100,
-    output_dir: str = DEFAULT_OUTPUT_DIR,
+    output_dir: str = DEFAULT_KB_DIR,
     overwrite: bool = False,
     dry_run: bool = False,
 ):

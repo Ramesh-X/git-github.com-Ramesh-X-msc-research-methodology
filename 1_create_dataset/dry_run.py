@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 os.environ["DRY_RUN"] = "true"
 os.environ["NUM_PAGES"] = "3"
-os.environ["OUTPUT_DIR"] = "output/kb_test"
+os.environ["KB_DIR"] = "output/kb_test"
 
 
 if __name__ == "__main__":
