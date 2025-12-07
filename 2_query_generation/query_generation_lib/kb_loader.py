@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from .constants import DATA_FOLDER, STRUCTURE_FILE_NAME
 from .models import PageMeta, Structure
 
 logger = logging.getLogger(__name__)
@@ -10,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 def load_structure(kb_dir: str | Path) -> Structure:
     kb_dir = Path(kb_dir)
-    structure_file = kb_dir / "structure.json"
+    structure_file = kb_dir / DATA_FOLDER / STRUCTURE_FILE_NAME
     if not structure_file.exists():
-        raise FileNotFoundError(f"structure.json not found in {kb_dir}")
+        raise FileNotFoundError(f"structure.json not found in {structure_file}")
     with open(structure_file, "r", encoding="utf-8") as f:
         data = json.load(f)
     # Map to our PageMeta (we accept sub-selection of fields)

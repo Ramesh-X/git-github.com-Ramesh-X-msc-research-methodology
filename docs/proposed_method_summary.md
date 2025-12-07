@@ -14,7 +14,7 @@ Reference: [6.3 Phase I - Structured Knowledge Base Generation.md](6 - Proposed 
 1. **Create Master Dataset Plan**:
    - Analyze real retail support sites (e.g., shipping, refunds, troubleshooting).
    - Define `structure.json`: Plan for 100 interlinked Markdown pages categorized as tabular (e.g., pricing tiers), logical/conditional (e.g., refund policies), unstructured/mixed.
-   - Include 10% data rot simulation: versioned/conflicting pages (e.g., `Policy_v1.md`: 30-day refunds vs. `Policy_v2.md`: 14-day refunds).
+   - Include 10% data rot simulation: 5 versioned page pairs with conflicting content (v1 outdated, v2 current) — e.g., `Policy-v1.md`: 30-day refunds vs. `Policy-v2.md`: 14-day refunds.
    - Specify interlinks, tables, Mermaid diagrams per page.
 
 2. **Generate Markdown Pages**:
@@ -25,12 +25,13 @@ Reference: [6.3 Phase I - Structured Knowledge Base Generation.md](6 - Proposed 
    - Python script to check: Markdown validity, link integrity, Mermaid syntax, ~10% rot presence.
 
 4. **Generate Evaluation Queries and Ground Truth**:
-   - Per page: 1 direct question + ground truth answer.
-   - Overall: ~100 direct retrieval, ~25 multi-hop, ~25 negative/adversarial (answers not in KB; expect "I don't know").
-   - Store as JSONL: `{query, ground_truth, context_reference}`.
-   - Total: ~150 QA pairs.
+   - Direct queries (120): Generated only from current (v2) pages using weighted random selection for balanced distribution.
+   - Multi-hop queries (40): Require information from 2+ linked pages.
+   - Negative queries (40): Plausible but unanswerable (expect "I don't know").
+   - Store in `data/queries.jsonl`: `{query, ground_truth, context_reference}`.
+   - Total: 200 QA pairs.
 
-**Output**: 100 MD files + dataset structure in `structure.json` + evaluation queries in `queries.jsonl` + validated topology (Figure 6.2 Mermaid in [6.3]).
+**Output**: 100 MD files (root) + `data/structure.json` + `data/queries.jsonl` + validated topology (Figure 6.2 Mermaid in [6.3]).
 
 ### Phase 2: Implement and Run Experimental Pipelines
 Reference: [6.4 Phase II - Architectural Pipeline Variations.md](6 - Proposed Method/6.4 Phase II - Architectural Pipeline Variations.md), [6.5 Implementation and Technology Stack.md](6 - Proposed Method/6.5 Implementation and Technology Stack.md), [6.1], [6.6 Feasibility and Justification.md](6 - Proposed Method/6.6 Feasibility and Justification.md).
@@ -51,7 +52,7 @@ Reference: [6.4 Phase II - Architectural Pipeline Variations.md](6 - Proposed Me
 **Run Experiments Sequentially**:
 
 3. **E1: Baseline (No RAG)**:
-   - Input: User query → LLM prompt → Generate answer.
+   - Input: User query → LLM prompt (includes refusal instruction: "say 'I don't know' if unsure") → Generate answer.
 
 4. **E2: Standard RAG**:
    - Query → Vector search (cosine, top-k=5) → Concat chunks → LLM.
@@ -64,10 +65,10 @@ Reference: [6.4 Phase II - Architectural Pipeline Variations.md](6 - Proposed Me
    - Prompts enforce: "Say 'don't know' if unsure; cite sources."
 
 **Execution**:
-- For each of ~150 queries, run all E1-E4 pipelines.
+- For each of 200 queries, run all E1-E4 pipelines.
 - Log: Raw outputs, retrieved chunks, tokens/latency, traces.
 
-**Output**: JSON logs per experiment (`e1_results.jsonl`, etc.) with query, retrieved_chunks, answer, metadata.
+**Output**: JSON logs in `data/` folder (`e1_baseline.jsonl`, `e2_standard_rag.jsonl`, etc.) with query, retrieved_chunks, answer, metadata.
 
 ### Phase 3: Evaluate and Analyze Results
 Reference: [6.7 Evaluation Framework.md](6 - Proposed Method/6.7 Evaluation Framework.md), [My Research - My words.md].

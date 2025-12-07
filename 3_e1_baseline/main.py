@@ -9,10 +9,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from e1_baseline_lib.constants import (
+    DATA_FOLDER,
     DEFAULT_DRY_RUN,
     DEFAULT_KB_DIR,
     DEFAULT_MODEL,
     DEFAULT_OVERWRITE,
+    E1_OUTPUT_FILE_NAME,
+    QUERIES_FILE_NAME,
 )
 from logging_config import setup_logging
 
@@ -36,8 +39,8 @@ def main():
         raise RuntimeError(
             "OPENROUTER_API_KEY environment variable is required unless DRY_RUN=true."
         )
-    queries_file = Path(KB_DIR) / "queries.jsonl"
-    output_file = Path(KB_DIR) / "e1_baseline.jsonl"
+    queries_file = Path(KB_DIR) / DATA_FOLDER / QUERIES_FILE_NAME
+    output_file = Path(KB_DIR) / DATA_FOLDER / E1_OUTPUT_FILE_NAME
     logger.info(
         "Starting E1 baseline; DRY_RUN=%s, QUERIES_FILE=%s", DRY_RUN, queries_file
     )

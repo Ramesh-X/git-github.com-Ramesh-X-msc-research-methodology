@@ -6,9 +6,11 @@ from typing import List
 from slugify import slugify
 
 from .constants import (
+    DATA_FOLDER,
     MISTAKE_INJECTION_RATE,
     PAGE_TYPE_DISTRIBUTION,
     ROT_RATE,
+    STRUCTURE_FILE_NAME,
     TOPIC_DISTRIBUTION,
 )
 from .models import Mistake, MistakeType, Page, PageType, RotPair, Severity, Structure
@@ -133,10 +135,11 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
         rot_pairs=rot_pairs,
         pages=pages,
     )
-    with open(os.path.join(out_dir, "structure.json"), "w", encoding="utf-8") as f:
+    data_dir = os.path.join(out_dir, DATA_FOLDER)
+    os.makedirs(data_dir, exist_ok=True)
+    structure_path = os.path.join(data_dir, STRUCTURE_FILE_NAME)
+    with open(structure_path, "w", encoding="utf-8") as f:
         # Pydantic v2: use model_dump_json() to serialize with indent
         f.write(structure.model_dump_json(indent=2))
-        logger.info(
-            "Wrote structure.json to %s", os.path.join(out_dir, "structure.json")
-        )
+        logger.info("Wrote structure.json to %s", structure_path)
     return structure

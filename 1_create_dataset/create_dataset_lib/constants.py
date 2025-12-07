@@ -40,3 +40,7 @@ DEFAULT_MODEL = "openai/gpt-oss-120b"
 DEFAULT_NUM_PAGES = 100
 DEFAULT_DRY_RUN = "false"
 DEFAULT_OVERWRITE = "false"
+
+# Fixed data folder and file names (never change - must be consistent across all steps)
+DATA_FOLDER = "data"
+STRUCTURE_FILE_NAME = "structure.json"

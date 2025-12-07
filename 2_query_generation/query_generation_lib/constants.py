@@ -11,6 +11,11 @@ MAX_ATTEMPTS = 5
 # Token limit for building prompts (characters) - overridden by env var NEGATIVE_PROMPT_TOKEN_LIMIT
 NEGATIVE_PROMPT_TOKEN_LIMIT = 200000
 
+# Fixed data folder and file names (never change - must be consistent across all steps)
+DATA_FOLDER = "data"
+STRUCTURE_FILE_NAME = "structure.json"
+QUERIES_FILE_NAME = "queries.jsonl"
+
 # Defaults used by the entrypoint (main.py)
 DEFAULT_MODEL = "openai/gpt-oss-120b"
 DEFAULT_KB_DIR = "output/kb"

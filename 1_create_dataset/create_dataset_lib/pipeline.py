@@ -4,7 +4,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from .constants import DEFAULT_KB_DIR
+from .constants import DATA_FOLDER, DEFAULT_KB_DIR, STRUCTURE_FILE_NAME
 from .llm_client import OpenRouterClient
 from .models import Page, Structure
 from .prompts import build_placeholder_content, build_prompt
@@ -31,8 +31,8 @@ def run_generation(
     overwrite: bool = False,
     dry_run: bool = False,
 ):
-    # Determine structure file path inside the output directory
-    structure_file = Path(output_dir) / "structure.json"
+    # Determine structure file path inside the output directory's data subfolder
+    structure_file = Path(output_dir) / DATA_FOLDER / STRUCTURE_FILE_NAME
     if structure_file.exists():
         logger.info("Loading existing structure from %s", structure_file)
         try:

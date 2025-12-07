@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from e2_to_e4_lib.constants import (
     CHUNK_OVERLAP,
     CHUNK_SIZE,
+    DATA_FOLDER,
     DEFAULT_DRY_RUN,
     DEFAULT_KB_DIR,
     DEFAULT_OVERWRITE,
@@ -54,10 +55,10 @@ def main():
 
     # Generate file paths from KB_DIR
     kb_dir = Path(KB_DIR)
-    queries_file = kb_dir / QUERIES_FILE_NAME
-    e2_output = kb_dir / E2_OUTPUT_FILE_NAME
-    e3_output = kb_dir / E3_OUTPUT_FILE_NAME
-    e4_output = kb_dir / E4_OUTPUT_FILE_NAME
+    queries_file = kb_dir / DATA_FOLDER / QUERIES_FILE_NAME
+    e2_output = kb_dir / DATA_FOLDER / E2_OUTPUT_FILE_NAME
+    e3_output = kb_dir / DATA_FOLDER / E3_OUTPUT_FILE_NAME
+    e4_output = kb_dir / DATA_FOLDER / E4_OUTPUT_FILE_NAME
 
     logger.info("=" * 80)
     logger.info("Starting E2-E4 Experiments")

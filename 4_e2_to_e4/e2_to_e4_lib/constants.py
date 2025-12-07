@@ -9,7 +9,11 @@ DEFAULT_KB_DIR = "output/kb"
 DEFAULT_DRY_RUN = "false"
 DEFAULT_OVERWRITE = "false"
 
+# Fixed data folder (never change - must be consistent across all steps)
+DATA_FOLDER = "data"
+
 # Fixed file names (never change)
+STRUCTURE_FILE_NAME = "structure.json"
 QUERIES_FILE_NAME = "queries.jsonl"
 E2_OUTPUT_FILE_NAME = "e2_standard_rag.jsonl"
 E3_OUTPUT_FILE_NAME = "e3_filtered_rag.jsonl"

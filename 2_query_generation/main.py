@@ -10,6 +10,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from logging_config import setup_logging
 from query_generation_lib.constants import (
+    DATA_FOLDER,
     DEFAULT_DRY_RUN,
     DEFAULT_KB_DIR,
     DEFAULT_MODEL,
@@ -17,6 +18,7 @@ from query_generation_lib.constants import (
     DEFAULT_NUM_MULTI_HOP,
     DEFAULT_NUM_NEGATIVE,
     DEFAULT_OVERWRITE,
+    QUERIES_FILE_NAME,
 )
 from query_generation_lib.constants import (
     NEGATIVE_PROMPT_TOKEN_LIMIT as DEFAULT_NEG_TOKEN_LIMIT,
@@ -47,7 +49,7 @@ def main():
     logger.info("Starting query generation; DRY_RUN=%s, KB_DIR=%s", DRY_RUN, KB_DIR)
     run_query_generation(
         kb_dir=Path(KB_DIR),
-        output_file=Path(KB_DIR) / "queries.jsonl",
+        output_file=Path(KB_DIR) / DATA_FOLDER / QUERIES_FILE_NAME,
         num_direct=NUM_DIRECT,
         num_multi_hop=NUM_MULTI_HOP,
         num_negative=NUM_NEGATIVE,
