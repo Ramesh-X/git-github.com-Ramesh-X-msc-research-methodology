@@ -55,12 +55,36 @@ def run_generation(
         logger.info("Initializing OpenRouter client with model %s", model)
         client = OpenRouterClient(api_key=openrouter_api_key, model=model)
 
+    # Build a mapping of rot pairs to identify v1/v2 relationships
+    rot_v1_to_v2 = {}
+    rot_v2_ids = set()
+    for rot_pair in structure.rot_pairs:
+        rot_v1_to_v2[rot_pair.v1] = rot_pair.v2
+        rot_v2_ids.add(rot_pair.v2)
+
+    # Store generated v1 content for v2 generation
+    v1_contents = {}
+
     for page in tqdm(structure.pages, desc="Generating pages"):
         filepath = Path(output_dir) / page.filename
         if filepath.exists() and not overwrite:
             logger.info("Skipping existing file: %s", page.filename)
             continue
-        prompt = build_prompt(page, all_pages=structure.pages)
+
+        # Check if this is a v2 page that needs v1 content
+        v1_content = None
+        if page.id in rot_v2_ids:
+            # Find the corresponding v1 page
+            v1_id = None
+            for v1, v2 in rot_v1_to_v2.items():
+                if v2 == page.id:
+                    v1_id = v1
+                    break
+            if v1_id and v1_id in v1_contents:
+                v1_content = v1_contents[v1_id]
+                logger.info("Using v1 content for v2 page: %s", page.filename)
+
+        prompt = build_prompt(page, all_pages=structure.pages, v1_content=v1_content)
         if dry_run:
             # generate deterministic placeholder content for testing
             content = build_placeholder_content(page)
@@ -76,6 +100,12 @@ def run_generation(
                 logger.exception("Failed to generate page %s: %s", page.title, e)
                 print(f"Failed to generate page {page.title}: {e}")
                 content = ""  # continue with empty content
+
+        # Store v1 content for later v2 generation
+        if page.id in rot_v1_to_v2:
+            v1_contents[page.id] = content
+            logger.info("Stored v1 content for: %s", page.filename)
+
         _save_md(output_dir, page, content)
         logger.info("Saved page: %s", page.filename)
 

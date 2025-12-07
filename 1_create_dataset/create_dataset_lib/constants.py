@@ -21,7 +21,7 @@ TOPIC_DISTRIBUTION: Dict[str, float] = {
 
 PAGE_TYPE_DISTRIBUTION = {"tabular": 40, "logical": 30, "unstructured": 30}
 MISTAKE_INJECTION_RATE = 0.30
-ROT_RATE = 0.10  # 10 pairs receives rot
+ROT_RATE = 0.10  # 10% of pages will have rot (1 pairs = 2 pages)
 
 STYLE_DISTRIBUTION = {
     "conversational_friendly": 0.41,
@@ -36,7 +36,7 @@ LENGTH_DISTRIBUTION = {
 }
 
 DEFAULT_KB_DIR = "output/kb"
-DEFAULT_MODEL = "x-ai/grok-4.1-fast:free"
+DEFAULT_MODEL = "openai/gpt-oss-120b"
 DEFAULT_NUM_PAGES = 100
 DEFAULT_DRY_RUN = "false"
 DEFAULT_OVERWRITE = "false"

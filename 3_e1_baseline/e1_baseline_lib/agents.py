@@ -21,7 +21,7 @@ def create_baseline_agent(model: OpenRouterModel) -> Agent[None, E1Response]:
     agent = Agent(
         model,
         output_type=E1Response,
-        system_prompt="You are a retail customer support assistant. Answer the question concisely.",
+        system_prompt="You are a retail customer support assistant. Answer the question concisely. If you are unsure or don't have information to answer accurately, say 'I don't know'.",
         retries=2,
     )
     return agent

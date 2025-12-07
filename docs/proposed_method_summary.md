@@ -18,7 +18,7 @@ Reference: [6.3 Phase I - Structured Knowledge Base Generation.md](6 - Proposed 
    - Specify interlinks, tables, Mermaid diagrams per page.
 
 2. **Generate Markdown Pages**:
-   - Use LLM (e.g., GPT-4o) to produce 100 detailed MD files from `structure.json`.
+   - Use LLM to produce 100 detailed MD files from `structure.json`.
    - Ensure: Headers, bold/italics, tables, Mermaid diagrams, hyperlinks.
 
 3. **Validate Dataset**:
@@ -44,7 +44,7 @@ Reference: [6.4 Phase II - Architectural Pipeline Variations.md](6 - Proposed Me
 2. **Technology Constants**:
    - Vector DB: Qdrant.
    - Embeddings: OpenAI `text-embedding-3-small`.
-   - LLM: GPT-4o-mini or equivalent.
+   - LLM: LLMs available via OpenRouter gateway.
    - Reranker: `cross-encoder/ms-marco-MiniLM-L-6-v2`.
    - Framework: Pydantic-AI for modular agents/prompts.
 

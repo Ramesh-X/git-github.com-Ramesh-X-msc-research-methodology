@@ -70,25 +70,54 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
         )
         pages.append(p)
 
-    # Create rot pairs: allocate 10% pairs (10 pairs for 100 pages)
-    num_rot_pairs = int(num_pages * ROT_RATE)
+    # Create rot pairs: 1 pairs = 2 pages
+    # Each pair consists of v1 (outdated) and v2 (current) versions
+    num_rot_pairs = int(
+        (num_pages * ROT_RATE) / 2
+    )  # Divide by 2 since each pair = 2 pages
     rot_pairs = []
     indices = list(range(num_pages))
     random.shuffle(indices)
-    used = set()
-    for _ in range(num_rot_pairs):
-        a = indices.pop()
-        b = indices.pop()
-        used.add(a)
-        used.add(b)
-        p1 = pages[a]
-        p2 = pages[b]
-        # Introduce conflicting statements for the pair
-        conflict = f"conflict: {p1.primary_topic} v {p2.primary_topic}"
-        rot_pairs.append(RotPair(v1=p1.id, v2=p2.id, conflict=conflict))
-        # Link them together
-        p1.links_to.append(p2.filename)
-        p2.links_to.append(p1.filename)
+
+    for pair_idx in range(num_rot_pairs):
+        # Select a page to create versioned rot for
+        base_idx = indices.pop()
+        base_page = pages[base_idx]
+
+        # Create v1 (outdated) version
+        v1_title = f"{base_page.title} v1"
+        v1_filename = slugify(v1_title) + ".md"
+        v1_page = Page(
+            id=slugify(v1_title),
+            title=v1_title,
+            filename=v1_filename,
+            category=base_page.category,
+            type=base_page.type,
+            primary_topic=base_page.primary_topic,
+            secondary_topics=base_page.secondary_topics,
+            style=base_page.style,
+            length=base_page.length,
+            mistake=base_page.mistake,
+            links_to=[],
+            requires_table=base_page.requires_table,
+            requires_mermaid=base_page.requires_mermaid,
+        )
+
+        # Update base page to be v2 (current) version
+        base_page.title = f"{base_page.title} v2"
+        base_page.filename = slugify(base_page.title) + ".md"
+        base_page.id = slugify(base_page.title)
+
+        # Add cross-links between versions
+        v1_page.links_to.append(base_page.filename)
+        base_page.links_to.append(v1_filename)
+
+        # Record the rot pair with conflict description
+        conflict = f"Versioned conflict: {base_page.primary_topic} policy/data changed"
+        rot_pairs.append(RotPair(v1=v1_page.id, v2=base_page.id, conflict=conflict))
+
+        # Insert v1 page into pages list
+        pages.append(v1_page)
 
     # Add a few additional cross-links
     for i in range(0, num_pages, 10):

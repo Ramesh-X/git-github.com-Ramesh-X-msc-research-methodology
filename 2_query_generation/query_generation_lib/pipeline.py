@@ -123,11 +123,38 @@ def run_query_generation(
     # Retry policy is defined in constants.MAX_ATTEMPTS
 
     # --- Direct queries ---
-    pages = list(structure.pages)
-    for page in tqdm(pages, desc="Direct queries", total=min(num_direct, len(pages))):
-        if len([q for q in generated if q["query_type"] == "direct"]) >= num_direct:
-            break
+    # Filter out outdated (v1) pages - only use current versions
+    all_pages = list(structure.pages)
+    current_pages = [p for p in all_pages if not p.filename.endswith("-v1.md")]
+    logger.info(
+        "Filtered pages for direct queries: %d current pages (excluded %d v1 pages)",
+        len(current_pages),
+        len(all_pages) - len(current_pages),
+    )
+
+    # Track query counts per page for weighted selection
+    query_counts = {p.filename: 0 for p in current_pages}
+    for q in generated:
+        if q["query_type"] == "direct" and q.get("context_reference"):
+            filename = q["context_reference"][0]
+            if filename in query_counts:
+                query_counts[filename] += 1
+
+    # Generate direct queries with weighted random selection
+    import random
+
+    generated_direct_count = len([q for q in generated if q["query_type"] == "direct"])
+
+    while generated_direct_count < num_direct and current_pages:
+        # Calculate weights: pages with fewer queries get higher weight
+        max_count = max(query_counts.values()) if query_counts.values() else 0
+        weights = [max_count + 1 - query_counts[p.filename] for p in current_pages]
+
+        # Select page using weighted random choice
+        page = random.choices(current_pages, weights=weights, k=1)[0]
+
         attempts = 0
+        success = False
         while attempts < MAX_ATTEMPTS:
             idx = next_idx["direct"]
             query_id = _format_query_id(QUERY_ID_PREFIXES["direct"], idx)
@@ -152,6 +179,9 @@ def run_query_generation(
                 out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
                 out_f.flush()
                 next_idx["direct"] += 1
+                query_counts[page.filename] += 1
+                generated_direct_count += 1
+                success = True
                 break
             else:
                 try:
@@ -183,6 +213,9 @@ def run_query_generation(
                     out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
                     out_f.flush()
                     next_idx["direct"] += 1
+                    query_counts[page.filename] += 1
+                    generated_direct_count += 1
+                    success = True
                     break
                 except Exception as e:
                     logger.exception(
@@ -196,6 +229,13 @@ def run_query_generation(
                         )
                         break
                     continue
+
+        if not success:
+            logger.warning(
+                "Failed to generate query for page %s after %d attempts",
+                page.filename,
+                MAX_ATTEMPTS,
+            )
 
     # --- Multi-hop queries ---
     pairs = find_linked_pairs(structure)

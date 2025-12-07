@@ -9,12 +9,15 @@ BASE_PROMPT = (
 )
 
 
-def build_prompt(page: Page, all_pages: List[Page] | None = None) -> str:
+def build_prompt(
+    page: Page, all_pages: List[Page] | None = None, v1_content: str | None = None
+) -> str:
     """Build a prompt for the LLM to generate the requested page.
 
     Args:
         page: Page object specifying fields.
         all_pages: optional list of pages to link to.
+        v1_content: If this is a v2 (current) version, provide v1 content to create contradicting data.
     """
     parts = [BASE_PROMPT]
     parts.append(f"Title: {page.title}")
@@ -29,6 +32,25 @@ def build_prompt(page: Page, all_pages: List[Page] | None = None) -> str:
         parts.append("Include at least one Markdown table relevant to the topic.")
     if page.requires_mermaid:
         parts.append("Include a Mermaid flowchart representing a relevant process.")
+
+    # Handle versioned pages (data rot simulation)
+    if v1_content:
+        parts.append("\n--- IMPORTANT: VERSION CONFLICT INSTRUCTION ---")
+        parts.append(
+            "This is version 2 (current version) of a page. Below is the outdated version 1 content:"
+        )
+        parts.append(f"\n```\n{v1_content}\n```\n")
+        parts.append(
+            "Generate NEW content for version 2 that CONTRADICTS the version 1 content in meaningful ways:"
+        )
+        parts.append("- Change numerical values (prices, timeframes, quantities)")
+        parts.append("- Modify policies or procedures")
+        parts.append("- Update requirements or eligibility criteria")
+        parts.append("- Alter contact information or availability")
+        parts.append(
+            "Make the contradictions realistic and significant enough to cause confusion if both versions are retrieved."
+        )
+
     if page.mistake:
         parts.append(
             f"Intentionally add a {page.mistake.type.value} mistake of severity {page.mistake.severity.value}. "

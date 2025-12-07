@@ -1,9 +1,10 @@
 /docs/*
 !/docs/proposed_method_summary.md
 !/docs/retail_customer_support_report.md
-!/docs/sythetic_retail_customer_support_srs.md
+!/docs/synthetic_retail_customer_support_srs.md
 !/docs/evaluation_query_generation_srs.md
 !/docs/experiment_1_srs.md
+!/docs/experiment_2_to_4_srs.md
 
 *.pyc
 __pycache__/

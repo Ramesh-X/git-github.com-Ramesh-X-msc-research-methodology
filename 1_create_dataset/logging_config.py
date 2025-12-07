@@ -4,12 +4,12 @@ from pathlib import Path
 
 
 def setup_logging(
-    log_file: str | None = None, level: int = logging.INFO
+    log_file: str | None = None, level: int = logging.DEBUG
 ) -> logging.Logger:
     """Configure root logger to write to a file only (no console handlers).
 
     Returns the root logger for convenience. Default log file is
-    create_dataset/logs/create_dataset.log (relative to package folder) or
+    logs/create_dataset.log (relative to package folder) or
     overridden with LOG_FILE env var.
     """
     if log_file is None:

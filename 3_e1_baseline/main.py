@@ -32,8 +32,7 @@ def main():
     logger = logging.getLogger(__name__)
     from e1_baseline_lib.pipeline import run_e1_baseline
 
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not DRY_RUN and not api_key:
+    if not DRY_RUN and not OPENROUTER_API_KEY:
         raise RuntimeError(
             "OPENROUTER_API_KEY environment variable is required unless DRY_RUN=true."
         )
@@ -45,7 +44,7 @@ def main():
     run_e1_baseline(
         queries_file=queries_file,
         output_file=output_file,
-        openrouter_api_key=api_key,
+        openrouter_api_key=OPENROUTER_API_KEY,
         model=MODEL,
         overwrite=OVERWRITE,
         dry_run=DRY_RUN,
