@@ -11,7 +11,7 @@ from create_dataset_lib.constants import (
 )
 from create_dataset_lib.constants import (
     DEFAULT_KB_DIR,
-    DEFAULT_NUM_PAGES,
+    NUM_PAGES,
 )
 from create_dataset_lib.constants import (
     DEFAULT_MODEL as DEFAULT_CREATE_MODEL,
@@ -26,7 +26,6 @@ from logging_config import setup_logging
 load_dotenv()
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 MODEL = os.getenv("OPENROUTER_MODEL", DEFAULT_CREATE_MODEL)
-NUM_PAGES = int(os.getenv("NUM_PAGES", str(DEFAULT_NUM_PAGES)))
 KB_DIR = os.getenv("KB_DIR", DEFAULT_KB_DIR)
 DRY_RUN = os.getenv("DRY_RUN", DEFAULT_CREATE_DRY_RUN).lower() == "true"
 OVERWRITE = os.getenv("OVERWRITE", DEFAULT_CREATE_OVERWRITE).lower() == "true"

@@ -26,9 +26,9 @@ ROT_RATE = 0.10  # 10% of pages = 10 rot pages total (5 pairs × 2 versions)
 DEFAULT_MAX_TOKENS = 2000  # Increased from 800 to allow rich content (tables, Mermaid)
 
 # Defaults for main.py
+NUM_PAGES = 100
 DEFAULT_KB_DIR = "output/kb"
 DEFAULT_MODEL = "openai/gpt-oss-120b"
-DEFAULT_NUM_PAGES = 100
 DEFAULT_DRY_RUN = "false"
 DEFAULT_OVERWRITE = "false"
 

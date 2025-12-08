@@ -43,7 +43,36 @@ class OpenRouterClient:
                     temperature=temperature,
                     **kwargs,
                 )
-                return resp.choices[0].message.content
+                # Defensive response parsing: OpenRouter/OpenAI SDK may return
+                # different structures (object-like or dict-like). Make a best-effort
+                # attempt to extract generated content and raise a helpful
+                # exception if absent to trigger retries.
+                if not resp:
+                    raise RuntimeError("Empty response from OpenRouter")
+                choices = getattr(resp, "choices", None)
+                if choices is None and isinstance(resp, dict):
+                    choices = resp.get("choices")
+                if not choices:
+                    raise RuntimeError("No choices in OpenRouter response")
+                choice = choices[0]
+                message = getattr(choice, "message", None)
+                if message is None and isinstance(choice, dict):
+                    message = choice.get("message")
+                content = None
+                if message is not None:
+                    content = getattr(message, "content", None)
+                    if content is None and isinstance(message, dict):
+                        content = message.get("content")
+                if content is None:
+                    # Fall back to older 'text' field or direct string return
+                    content = getattr(choice, "text", None)
+                    if content is None and isinstance(choice, dict):
+                        content = choice.get("text")
+                if not content:
+                    raise RuntimeError(
+                        "No message content returned in OpenRouter response"
+                    )
+                return content
             except Exception as e:
                 logger.warning(
                     "OpenRouter request failed on attempt %s: %s", attempt, e
@@ -51,6 +80,6 @@ class OpenRouterClient:
                 if attempt == retry:
                     logger.exception("Final attempt failed; raising")
                     raise
-                print(f"Attempt {attempt} failed: {e}. Retrying...")
+                logger.warning("Attempt %s failed; will retry: %s", attempt, e)
                 time.sleep(backoff)
                 backoff *= 2

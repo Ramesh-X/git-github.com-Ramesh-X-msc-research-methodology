@@ -488,4 +488,3 @@ def run_query_generation(
 
     stats = validate_query_set([Query(**q) for q in generated if q is not None])
     logger.info("Generation stats: %s", stats)
-    print("Generation stats: ", stats)

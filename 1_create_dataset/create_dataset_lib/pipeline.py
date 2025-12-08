@@ -51,6 +51,22 @@ def run_generation(
         logger.info("No existing structure found; generating new structure")
         structure = generate_structure(num_pages=num_pages, out_dir=output_dir)
 
+    # Validate the structure for duplicate filenames/ids; if duplicates exist, regenerate
+    filenames = [p.filename for p in structure.pages]
+    ids = [p.id for p in structure.pages]
+    dup_filenames = {f for f in filenames if filenames.count(f) > 1}
+    dup_ids = {i for i in ids if ids.count(i) > 1}
+    if dup_filenames or dup_ids:
+        # Fail fast: duplications in the structure indicate a generation bug or
+        # corrupt/partial structure.json. Rather than auto-regenerating and
+        # potentially overwriting content, exit with an explicit error.
+        msg = (
+            f"Loaded structure contains duplicate filenames {list(dup_filenames)} "
+            f"or duplicate ids {list(dup_ids)}; aborting generation."
+        )
+        logger.error(msg)
+        raise RuntimeError(msg)
+
     client = None
     if not dry_run:
         if not openrouter_api_key:
@@ -70,11 +86,19 @@ def run_generation(
     # Store generated v1 content for v2 generation
     v1_contents = {}
 
+    total_pages = len(structure.pages)
+    saved_count = 0
+    failed_count = 0
     for page in tqdm(structure.pages, desc="Generating pages"):
         filepath = Path(output_dir) / page.filename
         if filepath.exists() and not overwrite:
-            logger.info("Skipping existing file: %s", page.filename)
-            continue
+            msg = (
+                f"Output file already exists: {page.filename}. "
+                "Nothing should be skipped; aborting. "
+                "Set OVERWRITE=true or remove existing files to continue."
+            )
+            logger.error(msg)
+            raise RuntimeError(msg)
 
         # Check if this is a v2 page that needs v1 content
         v1_content = None
@@ -103,7 +127,11 @@ def run_generation(
                     raise RuntimeError("No content generated")
             except Exception as e:
                 logger.exception("Failed to generate page %s: %s", page.title, e)
-                print(f"Failed to generate page {page.title}: {e}")
+                logger.warning(
+                    "Failed to generate page '%s' (continuing with empty content): %s",
+                    page.title,
+                    e,
+                )
                 content = ""  # continue with empty content
 
         # Store v1 content for later v2 generation
@@ -111,19 +139,43 @@ def run_generation(
             v1_contents[page.id] = content
             logger.info("Stored v1 content for: %s", page.filename)
 
-        _save_md(output_dir, page, content)
-        logger.info("Saved page: %s", page.filename)
+        try:
+            _save_md(output_dir, page, content)
+            logger.info("Saved page: %s", page.filename)
+            saved_count += 1
+        except Exception as e:
+            logger.exception("Failed to save page %s: %s", page.filename, e)
+            failed_count += 1
 
     logger.info("Generation finished. Files are in %s", output_dir)
-    print(f"Generation finished. Files are in {output_dir}")
+    logger.info(
+        "Summary - Total pages in structure: %s; Saved: %s; Failed to save: %s",
+        total_pages,
+        saved_count,
+        failed_count,
+    )
+
+    # Verify output folder contains expected number of pages (excluding the data folder)
+    output_dir_path = Path(output_dir)
+    md_files = [p for p in output_dir_path.glob("*.md")]
+    md_count = len(md_files)
+    if md_count < num_pages:
+        logger.warning(
+            "Output dir '%s' contains %s markdown files, expected %s. Some pages may have been skipped or failed.",
+            output_dir,
+            md_count,
+            num_pages,
+        )
+        logger.info(
+            "Suggestion: re-run with OVERWRITE=true or delete existing files to force regeneration."
+        )
 
     # Run validation
     try:
         results = validate_kb(output_dir, expected_rot_pairs=len(structure.rot_pairs))
         logger.info("Validation results: %s", results)
-        print("Validation results:")
         for k, v in results.items():
-            print(f"- {k}: {v}")
+            logger.info("Validation - %s: %s", k, v)
     except Exception as e:
         logger.exception("Validation failed: %s", e)
-        print(f"Validation failed: {e}")
+        logger.error("Validation failed: %s", e)

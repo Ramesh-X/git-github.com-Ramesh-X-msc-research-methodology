@@ -133,22 +133,36 @@ def _generate_descriptive_title(primary_topic: str, is_rot: bool = False) -> str
 def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Structure:
     pages: List[Page] = []
     os.makedirs(out_dir, exist_ok=True)
+
+    # Calculate rot pairs upfront to adjust initial page count
+    # (rot pairs add v1 pages that count toward total)
+    num_rot_pairs = int((num_pages * ROT_RATE) / 2)  # 5 pairs for 100 pages
+    base_pages_to_generate = num_pages - num_rot_pairs  # 95 base pages for 100 total
+
     # Build page types according to distribution
     page_types = []
     for ptype, count in PAGE_TYPE_DISTRIBUTION.items():
         page_types.extend([ptype] * count)
-    # If counts don't sum to num_pages, fill with 'unstructured'
-    if len(page_types) < num_pages:
-        page_types.extend(["unstructured"] * (num_pages - len(page_types)))
+    # If counts don't sum to base_pages_to_generate, fill with 'unstructured'
+    if len(page_types) < base_pages_to_generate:
+        page_types.extend(["unstructured"] * (base_pages_to_generate - len(page_types)))
     random.shuffle(page_types)
 
-    topics = _choose_topics(num_pages)
+    topics = _choose_topics(base_pages_to_generate)
 
-    for i in range(num_pages):
+    used_filenames = set()
+    used_ids = set()
+    for i in range(base_pages_to_generate):
         t = page_types[i]
         primary = topics[i]
         title = _generate_descriptive_title(primary)
-        filename = slugify(title) + ".md"
+        base_slug = slugify(title)
+        filename = f"{base_slug}.md"
+        suffix_counter = 1
+        while filename in used_filenames:
+            filename = f"{base_slug}-{suffix_counter}.md"
+            suffix_counter += 1
+        used_filenames.add(filename)
         requires_table = t == "tabular"
         requires_mermaid = t == "logical"
         mistake = None
@@ -163,8 +177,14 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
             not is_hub and random.random() < 0.25
         )  # 20% of remaining are detail pages
 
+        # Ensure unique ids as well
+        id_slug = base_slug
+        suffix_counter = 1
+        while id_slug in used_ids:
+            id_slug = f"{base_slug}-{suffix_counter}"
+            suffix_counter += 1
         p = Page(
-            id=slugify(title),
+            id=id_slug,
             title=title,
             filename=filename,
             category=primary,  # Use primary topic as category
@@ -185,10 +205,10 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
             requires_mermaid=requires_mermaid,
         )
         pages.append(p)
+        used_ids.add(id_slug)
 
     # Create rot pairs: 5 pairs = 10 pages total
     # Each pair consists of v1 (outdated) and v2 (current) versions with SEMANTIC DRIFT
-    num_rot_pairs = int((num_pages * ROT_RATE) / 2)  # 5 pairs for 100 pages
     rot_pairs = []
 
     # Define semantic drift distribution: focus on SUBTLE, CONFUSING conflicts
@@ -230,9 +250,21 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
 
         # Create v1 (outdated) version
         v1_title = f"{base_page.title} (Outdated)"
-        v1_filename = slugify(v1_title) + ".md"
+        v1_base_slug = slugify(v1_title)
+        v1_filename = f"{v1_base_slug}.md"
+        suffix_counter = 1
+        while v1_filename in used_filenames:
+            v1_filename = f"{v1_base_slug}-{suffix_counter}.md"
+            suffix_counter += 1
+        used_filenames.add(v1_filename)
+        # Ensure unique id for v1 pages
+        v1_id_slug = v1_base_slug
+        suffix_counter = 1
+        while v1_id_slug in used_ids:
+            v1_id_slug = f"{v1_base_slug}-{suffix_counter}"
+            suffix_counter += 1
         v1_page = Page(
-            id=slugify(v1_title),
+            id=v1_id_slug,
             title=v1_title,
             filename=v1_filename,
             category=base_page.category,
@@ -246,12 +278,28 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
             requires_table=base_page.requires_table,
             requires_mermaid=base_page.requires_mermaid,
         )
+        used_ids.add(v1_id_slug)
 
         # Update base page to be v2 (current) version
         v2_title = f"{base_page.title} (Current)"
         base_page.title = v2_title
-        base_page.filename = slugify(v2_title) + ".md"
-        base_page.id = slugify(v2_title)
+        v2_base_slug = slugify(v2_title)
+        # allocate unique filename and id for v2 (base_page updated)
+        v2_filename = f"{v2_base_slug}.md"
+        suffix_counter = 1
+        while v2_filename in used_filenames:
+            v2_filename = f"{v2_base_slug}-{suffix_counter}.md"
+            suffix_counter += 1
+        used_filenames.add(v2_filename)
+        base_page.filename = v2_filename
+        v2_id_slug = v2_base_slug
+        suffix_counter = 1
+        while v2_id_slug in used_ids:
+            v2_id_slug = f"{v2_base_slug}-{suffix_counter}"
+            suffix_counter += 1
+        used_ids.add(v2_id_slug)
+        base_page.id = v2_id_slug
+        used_ids.add(v2_id_slug)
 
         # Add cross-links between versions
         v1_page.links_to.append(base_page.filename)
