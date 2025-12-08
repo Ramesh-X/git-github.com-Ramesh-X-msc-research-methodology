@@ -19,8 +19,8 @@ QUERIES_FILE_NAME = "queries.jsonl"
 # Defaults used by the entrypoint (main.py)
 DEFAULT_MODEL = "openai/gpt-oss-120b"
 DEFAULT_KB_DIR = "output/kb"
-DEFAULT_NUM_DIRECT = 120
-DEFAULT_NUM_MULTI_HOP = 40
+DEFAULT_NUM_DIRECT = 90
+DEFAULT_NUM_MULTI_HOP = 70
 DEFAULT_NUM_NEGATIVE = 40
 DEFAULT_OVERWRITE = "false"
 DEFAULT_DRY_RUN = "false"

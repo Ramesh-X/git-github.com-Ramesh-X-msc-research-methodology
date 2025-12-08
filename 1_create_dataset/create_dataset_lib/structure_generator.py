@@ -13,7 +13,16 @@ from .constants import (
     STRUCTURE_FILE_NAME,
     TOPIC_DISTRIBUTION,
 )
-from .models import Mistake, MistakeType, Page, PageType, RotPair, Severity, Structure
+from .models import (
+    Mistake,
+    MistakeType,
+    Page,
+    PageType,
+    RotPair,
+    SemanticDriftType,
+    Severity,
+    Structure,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +32,102 @@ def _choose_topics(n: int) -> List[str]:
     weights = list(TOPIC_DISTRIBUTION.values())
     choices = random.choices(keys, weights=weights, k=n)
     return choices
+
+
+def _generate_descriptive_title(primary_topic: str, is_rot: bool = False) -> str:
+    """Generate descriptive, purpose-driven page titles based on topic."""
+    topic_clean = primary_topic.replace("_", " ").title()
+
+    # Map topics to common page types/patterns
+    titles = {
+        "orders": [
+            "Order Management Guide",
+            "Order Tracking and Status",
+            "Order Processing Steps",
+            "Order Modification Policy",
+        ],
+        "returns_refunds": [
+            "Returns and Refunds Policy",
+            "How to Return Items",
+            "Refund Processing Timeline",
+            "Return Eligibility Criteria",
+        ],
+        "shipping_delivery": [
+            "Shipping Options and Rates",
+            "Delivery Timeline Information",
+            "International Shipping Guide",
+            "Shipping Zone Rates",
+        ],
+        "contact": [
+            "Customer Support Contacts",
+            "Department Contact Directory",
+            "Support Hours and Availability",
+            "How to Reach Support",
+        ],
+        "faq": [
+            f"{topic_clean} Frequently Asked Questions",
+            f"Common {topic_clean} Questions",
+            f"{topic_clean} Q&A Guide",
+        ],
+        "account": [
+            "Account Management Guide",
+            "Account Registration Process",
+            "Password and Security",
+            "Profile Settings",
+        ],
+        "payments_billing": [
+            "Payment Methods and Billing",
+            "Billing Cycle Explanation",
+            "Accepted Payment Options",
+            "Invoice and Payment History",
+        ],
+        "membership_loyalty": [
+            "Loyalty Program Guide",
+            "Membership Tiers and Benefits",
+            "Points Redemption",
+            "Loyalty Account Management",
+        ],
+        "product_info": [
+            "Product Specifications and Details",
+            "Product Availability",
+            "Product Comparison Guide",
+        ],
+        "warranty": [
+            "Warranty Coverage Information",
+            "Warranty Claims Process",
+            "Extended Warranty Options",
+        ],
+        "store_services": [
+            "In-Store Services Guide",
+            "Service Availability",
+            "How to Schedule Services",
+        ],
+        "accessibility": [
+            "Accessibility Features",
+            "Accessibility Support",
+            "Screen Reader Compatibility",
+        ],
+        "installation": [
+            "Installation Guide",
+            "Professional Installation",
+            "DIY Setup Instructions",
+        ],
+        "sustainability": [
+            "Sustainability Initiatives",
+            "Environmental Responsibility",
+            "Green Shipping Options",
+        ],
+        "recycling": [
+            "Recycling Program",
+            "Product Recycling Guide",
+            "Disposal and Recycling",
+        ],
+    }
+
+    title = random.choice(titles.get(primary_topic, [f"{topic_clean} Information"]))
+    if is_rot:
+        title += " (Current)"
+    return title
 
 
 def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Structure:
@@ -42,7 +147,7 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
     for i in range(num_pages):
         t = page_types[i]
         primary = topics[i]
-        title = f"{primary.replace('_', ' ').title()} Page {i + 1}"
+        title = _generate_descriptive_title(primary)
         filename = slugify(title) + ".md"
         requires_table = t == "tabular"
         requires_mermaid = t == "logical"
@@ -51,33 +156,70 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
             mistake_type = random.choice(list(MistakeType))
             severity = random.choices(list(Severity), weights=[58, 33, 9], k=1)[0]
             mistake = Mistake(type=mistake_type, severity=severity)
+
+        # TRANSITIVE MULTI-HOP: Designate 20% of pages as "hub" pages (no specific data)
+        is_hub = random.random() < 0.20
+        is_detail = (
+            not is_hub and random.random() < 0.25
+        )  # 20% of remaining are detail pages
+
         p = Page(
             id=slugify(title),
             title=title,
             filename=filename,
-            category=random.choice(
-                ["general_retail", "fashion", "electronics", "grocery", "home_goods"]
-            ),
+            category=primary,  # Use primary topic as category
             type=PageType(t),
             primary_topic=primary,
-            secondary_topics=random.sample(list(TOPIC_DISTRIBUTION.keys()), k=2),
+            secondary_topics=random.sample(
+                list(TOPIC_DISTRIBUTION.keys()), k=min(2, len(TOPIC_DISTRIBUTION))
+            ),
             style=random.choice(
                 ["conversational_friendly", "corporate_formal", "technical_detailed"]
             ),
             length=random.choice(["brief", "medium", "comprehensive"]),
             mistake=mistake,
             links_to=[],
+            is_hub_page=is_hub,
+            is_detail_page=is_detail,
             requires_table=requires_table,
             requires_mermaid=requires_mermaid,
         )
         pages.append(p)
 
-    # Create rot pairs: 1 pairs = 2 pages
-    # Each pair consists of v1 (outdated) and v2 (current) versions
-    num_rot_pairs = int(
-        (num_pages * ROT_RATE) / 2
-    )  # Divide by 2 since each pair = 2 pages
+    # Create rot pairs: 5 pairs = 10 pages total
+    # Each pair consists of v1 (outdated) and v2 (current) versions with SEMANTIC DRIFT
+    num_rot_pairs = int((num_pages * ROT_RATE) / 2)  # 5 pairs for 100 pages
     rot_pairs = []
+
+    # Define semantic drift distribution: focus on SUBTLE, CONFUSING conflicts
+    semantic_drift_distribution = [
+        (
+            SemanticDriftType.CONDITIONAL_THRESHOLD,
+            "Free shipping now requires $75 minimum AND excludes Alaska/Hawaii (was: $50 all locations)",
+            "moderate",
+        ),
+        (
+            SemanticDriftType.SCOPE_NARROWING,
+            "30-day returns apply to online orders only; in-store purchases have 14-day window",
+            "subtle",
+        ),
+        (
+            SemanticDriftType.ELIGIBILITY_TIGHTENING,
+            "Returns require pristine condition, original tags, and original packaging (was: pristine condition only)",
+            "moderate",
+        ),
+        (
+            SemanticDriftType.EXCEPTION_ADDITION,
+            "Free returns on all items except clearance/final-sale merchandise (was: all returns free)",
+            "subtle",
+        ),
+        (
+            SemanticDriftType.DEFINITION_SHIFT,
+            "Refund processing time now measured in calendar days (not business days); expedited refunds added",
+            "moderate",
+        ),
+    ]
+
     indices = list(range(num_pages))
     random.shuffle(indices)
 
@@ -87,7 +229,7 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
         base_page = pages[base_idx]
 
         # Create v1 (outdated) version
-        v1_title = f"{base_page.title} v1"
+        v1_title = f"{base_page.title} (Outdated)"
         v1_filename = slugify(v1_title) + ".md"
         v1_page = Page(
             id=slugify(v1_title),
@@ -106,20 +248,59 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
         )
 
         # Update base page to be v2 (current) version
-        base_page.title = f"{base_page.title} v2"
-        base_page.filename = slugify(base_page.title) + ".md"
-        base_page.id = slugify(base_page.title)
+        v2_title = f"{base_page.title} (Current)"
+        base_page.title = v2_title
+        base_page.filename = slugify(v2_title) + ".md"
+        base_page.id = slugify(v2_title)
 
         # Add cross-links between versions
         v1_page.links_to.append(base_page.filename)
         base_page.links_to.append(v1_filename)
 
-        # Record the rot pair with conflict description
-        conflict = f"Versioned conflict: {base_page.primary_topic} policy/data changed"
-        rot_pairs.append(RotPair(v1=v1_page.id, v2=base_page.id, conflict=conflict))
+        # Select semantic drift type for this rot pair (adversarial)
+        drift_type, conflict_desc, confusion_level = semantic_drift_distribution[
+            pair_idx % len(semantic_drift_distribution)
+        ]
+
+        # Record the rot pair with SEMANTIC DRIFT metadata
+        rot_pairs.append(
+            RotPair(
+                v1=v1_page.id,
+                v2=base_page.id,
+                semantic_drift_type=drift_type,
+                conflict_description=conflict_desc,
+                lexical_overlap=0.70,  # 70% of text should be identical
+                semantic_confusion_level=confusion_level,
+            )
+        )
 
         # Insert v1 page into pages list
         pages.append(v1_page)
+
+    # TRANSITIVE MULTI-HOP ENFORCEMENT: Create hub-to-detail relationships
+    # Hub pages link to detail pages but contain NO specific data themselves
+    hub_pages = [p for p in pages if p.is_hub_page]
+    detail_pages = [p for p in pages if p.is_detail_page]
+
+    if hub_pages and detail_pages:
+        for hub in hub_pages[:10]:  # Link up to 10 hubs
+            # Each hub links to 2-3 detail pages
+            targets = random.sample(detail_pages, k=min(3, len(detail_pages)))
+            for target in targets:
+                if target.filename not in hub.links_to:
+                    hub.links_to.append(target.filename)
+
+    # CIRCULAR REFERENCE TRAPS: Create small circular links (A -> B -> A) for definitions
+    # This tests if RAG systems get stuck in loops or properly resolve circular references
+    circular_pairs = random.sample(pages, k=min(4, len(pages)))
+    for i in range(0, len(circular_pairs) - 1, 2):
+        page_a = circular_pairs[i]
+        page_b = circular_pairs[i + 1]
+        # Create circular link: A -> B -> A (for specific definition sections)
+        if page_b.filename not in page_a.links_to:
+            page_a.links_to.append(page_b.filename)
+        if page_a.filename not in page_b.links_to:
+            page_b.links_to.append(page_a.filename)
 
     # Add a few additional cross-links
     for i in range(0, num_pages, 10):
@@ -129,11 +310,34 @@ def generate_structure(num_pages: int = 100, out_dir: str = "output/kb") -> Stru
             if t.filename not in src.links_to and t.filename != src.filename:
                 src.links_to.append(t.filename)
 
+    # HIDDEN ENTITY DEPENDENCIES: Create entity anchors that appear across non-linked pages
+    entity_anchors = []
+    entity_names = [
+        "Platinum Membership",
+        "Zone B Shipping",
+        "Defective Item",
+        "Clearance Sale",
+        "Express Shipping",
+    ]
+
+    for entity_name in entity_names:
+        # Select 3-4 random non-linked pages to reference this entity
+        anchor_pages = random.sample(pages, k=min(4, len(pages)))
+        anchor_pages_ids = [p.id for p in anchor_pages]
+        entity_anchors.append(
+            {
+                "entity_name": entity_name,
+                "appearing_in_pages": anchor_pages_ids,
+                "is_explicitly_linked": False,  # No hyperlinks between these pages
+            }
+        )
+
     structure = Structure(
         num_pages=num_pages,
         page_types=PAGE_TYPE_DISTRIBUTION,
         rot_pairs=rot_pairs,
         pages=pages,
+        entity_anchors=entity_anchors,
     )
     data_dir = os.path.join(out_dir, DATA_FOLDER)
     os.makedirs(data_dir, exist_ok=True)

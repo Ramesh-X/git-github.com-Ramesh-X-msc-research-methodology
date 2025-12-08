@@ -11,27 +11,48 @@ The methodology decomposes the hallucination problem into retrieval noise/misses
 ### Phase 1: Generate Structured Knowledge Base (KB) Dataset
 Reference: [6.3 Phase I - Structured Knowledge Base Generation.md](6 - Proposed Method/6.3 Phase I - Structured Knowledge Base Generation.md), [6.2].
 
+**HARDENED DATASET IMPLEMENTATION:** Generate adversarial/Red Team dataset designed to expose RAG weaknesses.
+
 1. **Create Master Dataset Plan**:
    - Analyze real retail support sites (e.g., shipping, refunds, troubleshooting).
-   - Define `structure.json`: Plan for 100 interlinked Markdown pages categorized as tabular (e.g., pricing tiers), logical/conditional (e.g., refund policies), unstructured/mixed.
-   - Include 10% data rot simulation: 5 versioned page pairs with conflicting content (v1 outdated, v2 current) — e.g., `Policy-v1.md`: 30-day refunds vs. `Policy-v2.md`: 14-day refunds.
+   - Define `structure.json`: Plan for 100 interlinked Markdown pages.
+   - Include **10% data rot with semantic drift**: 5 versioned page pairs with typed conflicts (conditional threshold, scope narrowing, eligibility tightening, exception addition, definition shift).
    - Specify interlinks, tables, Mermaid diagrams per page.
+   - Designate 20% of pages as "hub" pages (overviews with no specific data) to enforce transitive multi-hop reasoning.
+   - Define hidden entity anchors across non-linked pages for implicit dependency testing.
+   - Create circular reference traps (A → B → A) for loop detection testing.
 
-2. **Generate Markdown Pages**:
+2. **Generate Markdown Pages with Adversarial Features**:
    - Use LLM to produce 100 detailed MD files from `structure.json`.
-   - Ensure: Headers, bold/italics, tables, Mermaid diagrams, hyperlinks.
+   - Token budget: 2000 tokens per page.
+   - **SEMANTIC DRIFT ENFORCEMENT**: For rot pairs (v1→v2), generate subtle contradictions with 70% lexical overlap:
+     - Conditional thresholds (e.g., "free shipping $50 → $75 AND excludes AK/HI")
+     - Scope narrowing (e.g., "all returns → online only")
+     - Eligibility tightening (e.g., "pristine → pristine + original tags")
+     - Exception addition (e.g., "free → free except clearance")
+     - Definition shifts (e.g., "business days → calendar days")
+   - **TABLE COMPLEXITY**: Enforce conditional columns and cross-table dependencies (30% of table data requires multi-row aggregation).
+   - **HUB PAGE CONSTRAINTS**: Hub pages MUST NOT contain specific data; use placeholder language pointing to detail pages.
+   - Headers, tables (2+ per tabular page with conditional logic), Mermaid diagrams (1+ per logical page), hyperlinks.
 
 3. **Validate Dataset**:
    - Python script to check: Markdown validity, link integrity, Mermaid syntax, ~10% rot presence.
+   - Verify hub/detail separation and entity anchor distribution.
 
-4. **Generate Evaluation Queries and Ground Truth**:
-   - Direct queries (120): Generated only from current (v2) pages using weighted random selection for balanced distribution.
-   - Multi-hop queries (40): Require information from 2+ linked pages.
-   - Negative queries (40): Plausible but unanswerable (expect "I don't know").
-   - Store in `data/queries.jsonl`: `{query, ground_truth, context_reference}`.
-   - Total: 200 QA pairs.
+4. **Generate Evaluation Queries with Adversarial Subtypes**:
+   - **Direct queries (90)**: Generated only from current (v2) pages using weighted random selection.
+     - Subtypes (with new TABLE_AGGREGATION): simple fact, **table aggregation (multi-row), table lookup, process step, conditional logic, list enumeration, rot-aware.
+     - TABLE_AGGREGATION requires arithmetic, conditional reasoning, or multi-step lookups (e.g., "Cheapest shipping for 7lb package to Zone B?").
+   - **Multi-hop queries (70)**: Require information from 2+ linked pages.
+     - Subtypes: sequential process, policy-FAQ cross, comparative, **hub-to-detail, cross-category, rot-aware.
+     - **HUB-TO-DETAIL**: Hub page provides navigation; detail page provides specific answer (must read both).
+   - **Negative queries (40)**: Plausible but unanswerable (expect "I don't know").
+     - Subtypes with LEXICAL TRAPS: adjacent topic (90%+ keyword overlap, missing detail), missing data point, out-of-scope procedure, cross-category gap.
+     - LEXICAL TRAPS ensure high cosine similarity but no answer (punishes vector-only retrieval).
+   - Store in `data/queries.jsonl`: `{query, ground_truth, context_reference, metadata}`.
+   - Total: 200 QA pairs with enhanced subtype variation.
 
-**Output**: 100 MD files (root) + `data/structure.json` + `data/queries.jsonl` + validated topology (Figure 6.2 Mermaid in [6.3]).
+**Output**: 100 MD files (with semantic drift rot pairs, hub/detail separation, circular references, entity anchors) + `data/structure.json` + `data/queries.jsonl` + validated topology.
 
 ### Phase 2: Implement and Run Experimental Pipelines
 Reference: [6.4 Phase II - Architectural Pipeline Variations.md](6 - Proposed Method/6.4 Phase II - Architectural Pipeline Variations.md), [6.5 Implementation and Technology Stack.md](6 - Proposed Method/6.5 Implementation and Technology Stack.md), [6.1], [6.6 Feasibility and Justification.md](6 - Proposed Method/6.6 Feasibility and Justification.md).

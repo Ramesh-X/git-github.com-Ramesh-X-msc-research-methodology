@@ -1,40 +1,31 @@
 from typing import Dict
 
-# Topic distributions (rounded to nearest integers when generating structure.json)
+# Topic distributions - rebalanced for broader coverage
+# Increased from 11 to 15 topics for better diversity
 TOPIC_DISTRIBUTION: Dict[str, float] = {
-    "orders": 14.0,
-    "returns_refunds": 13.5,
-    "shipping_delivery": 13.0,
-    "contact": 12.5,
-    "faq": 17.0,
-    "account": 6.5,
-    "payments_billing": 5.5,
-    "membership_loyalty": 4.5,
-    "product_info": 3.5,
-    "warranty": 2.0,
-    "store_services": 2.5,
-    "accessibility": 1.5,
-    "installation": 2.0,
-    "sustainability": 1.0,
-    "recycling": 1.0,
+    "orders": 11.0,
+    "returns_refunds": 10.0,
+    "shipping_delivery": 10.0,
+    "contact": 9.0,
+    "faq": 11.0,
+    "account": 8.0,
+    "payments_billing": 8.0,
+    "membership_loyalty": 7.0,
+    "product_info": 6.0,
+    "warranty": 5.0,
+    "store_services": 4.0,
+    "accessibility": 3.0,
+    "installation": 3.0,
+    "sustainability": 2.0,
+    "recycling": 2.0,
 }
 
 PAGE_TYPE_DISTRIBUTION = {"tabular": 40, "logical": 30, "unstructured": 30}
-MISTAKE_INJECTION_RATE = 0.30
-ROT_RATE = 0.10  # 10% of pages will have rot (1 pairs = 2 pages)
+MISTAKE_INJECTION_RATE = 0.15  # Reduced to account for intentional rot contradictions
+ROT_RATE = 0.10  # 10% of pages = 10 rot pages total (5 pairs × 2 versions)
+DEFAULT_MAX_TOKENS = 2000  # Increased from 800 to allow rich content (tables, Mermaid)
 
-STYLE_DISTRIBUTION = {
-    "conversational_friendly": 0.41,
-    "corporate_formal": 0.35,
-    "technical_detailed": 0.24,
-}
-
-LENGTH_DISTRIBUTION = {
-    "brief": 0.25,
-    "medium": 0.51,
-    "comprehensive": 0.24,
-}
-
+# Defaults for main.py
 DEFAULT_KB_DIR = "output/kb"
 DEFAULT_MODEL = "openai/gpt-oss-120b"
 DEFAULT_NUM_PAGES = 100

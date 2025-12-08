@@ -4,7 +4,12 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from .constants import DATA_FOLDER, DEFAULT_KB_DIR, STRUCTURE_FILE_NAME
+from .constants import (
+    DATA_FOLDER,
+    DEFAULT_KB_DIR,
+    DEFAULT_MAX_TOKENS,
+    STRUCTURE_FILE_NAME,
+)
 from .llm_client import OpenRouterClient
 from .models import Page, Structure
 from .prompts import build_placeholder_content, build_prompt
@@ -93,7 +98,7 @@ def run_generation(
             try:
                 if client is None:
                     raise RuntimeError("Client is not initialized")
-                content = client.generate(prompt, max_tokens=800)
+                content = client.generate(prompt, max_tokens=DEFAULT_MAX_TOKENS)
                 if content is None:
                     raise RuntimeError("No content generated")
             except Exception as e:

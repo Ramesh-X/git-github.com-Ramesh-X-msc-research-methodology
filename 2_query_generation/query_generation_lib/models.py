@@ -10,14 +10,36 @@ class QueryType(str, Enum):
     NEGATIVE = "negative"
 
 
-class Difficulty(str, Enum):
-    EASY = "easy"
-    MEDIUM = "medium"
-    HARD = "hard"
+class DirectQuerySubtype(str, Enum):
+    SIMPLE_FACT = "simple_fact"  # Single fact extraction
+    TABLE_LOOKUP = "table_lookup"  # Answer requires reading table
+    TABLE_AGGREGATION = (
+        "table_aggregation"  # Requires multi-row aggregation/conditional logic
+    )
+    PROCESS_STEP = "process_step"  # Extract specific steps from procedure
+    CONDITIONAL_LOGIC = "conditional_logic"  # "What happens if..." scenarios
+    LIST_ENUMERATION = "list_enumeration"  # "What are all...", "List the..."
+    ROT_AWARE = "rot_aware"  # Target current (v2) versioned content
+
+
+class MultiHopQuerySubtype(str, Enum):
+    SEQUENTIAL_PROCESS = "sequential_process"  # Steps from different procedural pages
+    POLICY_FAQ_CROSS = "policy_faq_cross"  # Policy + FAQ clarification
+    COMPARATIVE = "comparative"  # Compare data from two pages
+    HUB_TO_DETAIL = "hub_to_detail"  # Hub page provides overview, detail has answer
+    CROSS_CATEGORY = "cross_category"  # Span different categories
+    ROT_AWARE = "rot_aware"  # One page is v2, other is regular
+
+
+class NegativeQuerySubtype(str, Enum):
+    ADJACENT_TOPIC = "adjacent_topic"  # Topic similar but not covered
+    MISSING_DATA = "missing_data"  # Specific data point not in KB
+    OUT_OF_SCOPE_PROCEDURE = "out_of_scope_procedure"  # Procedure not documented
+    CROSS_CATEGORY_GAP = "cross_category_gap"  # Info gap between categories
 
 
 class QueryMetadata(BaseModel):
-    difficulty: Difficulty = Difficulty.MEDIUM
+    subtype: Optional[str] = None  # Subtype of query
     category: Optional[str] = None
 
 
@@ -43,7 +65,6 @@ class PageMeta(BaseModel):
 class QueryResponse(BaseModel):
     query: str
     ground_truth: str
-    difficulty: Difficulty = Difficulty.MEDIUM
     category: Optional[str] = None
 
 
