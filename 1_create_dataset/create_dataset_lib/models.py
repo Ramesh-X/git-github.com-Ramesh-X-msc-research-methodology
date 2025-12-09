@@ -97,3 +97,14 @@ class Structure(BaseModel):
     entity_anchors: List[
         dict
     ] = []  # Hidden dependencies: entities appearing across non-linked pages
+
+
+class ContentResponse(BaseModel):
+    """Structured output from the content generation agent.
+
+    The agent generates markdown content for knowledge base pages.
+    """
+
+    content: str = Field(
+        ..., description="Generated markdown content for the knowledge base page"
+    )
