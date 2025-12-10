@@ -50,85 +50,85 @@ def generate_multi_hop_queries(
             if generated_multi_hop_count >= num_multi_hop:
                 break
 
-        attempts = 0
-        while attempts < MAX_ATTEMPTS:
-            # Get next ID from allocator (handles missing + sequential automatically)
-            query_id = id_allocator.get_next_id()
-            if query_id in existing_ids:
-                continue
+            attempts = 0
+            while attempts < MAX_ATTEMPTS:
+                # Get next ID from allocator (handles missing + sequential automatically)
+                query_id = id_allocator.get_next_id()
+                if query_id in existing_ids:
+                    continue
 
-            pbar.set_postfix(id=query_id)
+                pbar.set_postfix(id=query_id)
 
-            subtype = choose_multi_hop_subtype()
-            content_a = load_page_content(kb_dir, a.filename)
-            content_b = load_page_content(kb_dir, b.filename)
-            prompt = build_multi_hop_prompt(content_a, content_b, subtype=subtype)
+                subtype = choose_multi_hop_subtype()
+                content_a = load_page_content(kb_dir, a.filename)
+                content_b = load_page_content(kb_dir, b.filename)
+                prompt = build_multi_hop_prompt(content_a, content_b, subtype=subtype)
 
-            if dry_run:
-                qobj = {
-                    "query_id": query_id,
-                    "query_type": "multi_hop",
-                    "query": f"(DRY) [{subtype}] How can I combine info from {a.title} and {b.title}?",
-                    "ground_truth": "Combine information from both pages.",
-                    "context_reference": [a.filename, b.filename],
-                    "metadata": {
-                        "subtype": subtype,
-                        "category": a.category or b.category,
-                    },
-                }
-                generated.append(qobj)
-                out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
-                out_f.flush()
-                generated_multi_hop_count += 1
-                pbar.update(1)
-                break
-            else:
-                try:
-                    assert multi_hop_agent is not None
-                    resp = multi_hop_agent.run_sync(prompt)
-                    qresp = resp.output
-                    qobj = Query(
-                        query_id=query_id,
-                        query_type=QueryType.MULTI_HOP,
-                        query=qresp.query,
-                        ground_truth=qresp.ground_truth,
-                        context_reference=[a.filename, b.filename],
-                        metadata=QueryMetadata(
-                            subtype=subtype,
-                            category=qresp.category or a.category or b.category,
-                        ),
-                    )
-                    if not validate_query(qobj):
-                        logger.warning("Validation failed for %s", qobj.query_id)
+                if dry_run:
+                    qobj = {
+                        "query_id": query_id,
+                        "query_type": "multi_hop",
+                        "query": f"(DRY) [{subtype}] How can I combine info from {a.title} and {b.title}?",
+                        "ground_truth": "Combine information from both pages.",
+                        "context_reference": [a.filename, b.filename],
+                        "metadata": {
+                            "subtype": subtype,
+                            "category": a.category or b.category,
+                        },
+                    }
+                    generated.append(qobj)
+                    out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
+                    out_f.flush()
+                    generated_multi_hop_count += 1
+                    pbar.update(1)
+                    break
+                else:
+                    try:
+                        assert multi_hop_agent is not None
+                        resp = multi_hop_agent.run_sync(prompt)
+                        qresp = resp.output
+                        qobj = Query(
+                            query_id=query_id,
+                            query_type=QueryType.MULTI_HOP,
+                            query=qresp.query,
+                            ground_truth=qresp.ground_truth,
+                            context_reference=[a.filename, b.filename],
+                            metadata=QueryMetadata(
+                                subtype=subtype,
+                                category=qresp.category or a.category or b.category,
+                            ),
+                        )
+                        if not validate_query(qobj):
+                            logger.warning("Validation failed for %s", qobj.query_id)
+                            attempts += 1
+                            if attempts >= MAX_ATTEMPTS:
+                                logger.warning(
+                                    "Exceeded attempts for multi-hop pair %s/%s; skipping",
+                                    a.filename,
+                                    b.filename,
+                                )
+                                break
+                            continue
+                        parsed = json.loads(qobj.model_dump_json())
+                        generated.append(parsed)
+                        out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
+                        out_f.flush()
+                        generated_multi_hop_count += 1
+                        pbar.update(1)
+                        break
+                    except Exception as e:
+                        logger.exception(
+                            "Failed to generate multi-hop query %s: %s", query_id, e
+                        )
                         attempts += 1
                         if attempts >= MAX_ATTEMPTS:
                             logger.warning(
-                                "Exceeded attempts for multi-hop pair %s/%s; skipping",
+                                "Exceeded attempts for multi-hop pair %s/%s (errors), skipping",
                                 a.filename,
                                 b.filename,
                             )
                             break
                         continue
-                    parsed = json.loads(qobj.model_dump_json())
-                    generated.append(parsed)
-                    out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
-                    out_f.flush()
-                    generated_multi_hop_count += 1
-                    pbar.update(1)
-                    break
-                except Exception as e:
-                    logger.exception(
-                        "Failed to generate multi-hop query %s: %s", query_id, e
-                    )
-                    attempts += 1
-                    if attempts >= MAX_ATTEMPTS:
-                        logger.warning(
-                            "Exceeded attempts for multi-hop pair %s/%s (errors), skipping",
-                            a.filename,
-                            b.filename,
-                        )
-                        break
-                    continue
 
     return generated_multi_hop_count
 

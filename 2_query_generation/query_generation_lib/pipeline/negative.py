@@ -56,104 +56,106 @@ def generate_negative_queries(
             if remaining <= 0:
                 break
 
-        attempts = 0
-        while attempts < MAX_ATTEMPTS:
-            # Get next ID from allocator (handles missing + sequential automatically)
-            query_id = id_allocator.get_next_id()
-            if query_id in existing_ids:
-                continue
+            attempts = 0
+            while attempts < MAX_ATTEMPTS:
+                # Get next ID from allocator (handles missing + sequential automatically)
+                query_id = id_allocator.get_next_id()
+                if query_id in existing_ids:
+                    continue
 
-            pbar.set_postfix(id=query_id)
+                pbar.set_postfix(id=query_id)
 
-            subtype = choose_negative_subtype()
-            anchor_content = load_page_content(kb_dir, anchor.filename)
-            linked_cts = get_linked_page_contents(kb_dir, anchor)
-            linked_contents_joined = "\n\n---\n\n".join(linked_cts)
-            anchor_meta = (
-                f"Title: {anchor.title}\nFilename: {anchor.filename}\nCategory: {anchor.category or 'Uncategorized'}\n"
-                f"Primary topic: {anchor.primary_topic or 'None'}\nSecondary topics: {', '.join(anchor.secondary_topics) if anchor.secondary_topics else 'None'}"
-            )
-
-            anchor_block = anchor_content
-            if linked_contents_joined:
-                anchor_block = (anchor_block + "\n\n" + linked_contents_joined).strip()
-            if len(anchor_block) > token_limit:
-                anchor_block = anchor_block[:token_limit]
-
-            prompt = build_anchored_negative_prompt(
-                anchor_content=anchor_block,
-                linked_contents=linked_contents_joined,
-                anchor_meta=anchor_meta,
-                kb_summary=kb_summary,
-                num_queries=1,
-                subtype=subtype,
-            )
-
-            if dry_run:
-                qobj = {
-                    "query_id": query_id,
-                    "query_type": "negative",
-                    "query": f"(DRY) [{subtype}] Anchor: {anchor.title}; Question: Is there an undocumented feature?",
-                    "ground_truth": "I don't know based on the KB.",
-                    "context_reference": [anchor.filename],
-                    "metadata": {
-                        "subtype": subtype,
-                        "category": anchor.category or "general",
-                    },
-                }
-                generated.append(qobj)
-                out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
-                out_f.flush()
-                remaining -= 1
-                pbar.update(1)
-                break
-
-            try:
-                assert anchored_negative_agent is not None
-                resp = anchored_negative_agent.run_sync(prompt)
-                qresp = resp.output
-                qobj = Query(
-                    query_id=query_id,
-                    query_type=QueryType.NEGATIVE,
-                    query=qresp.query,
-                    ground_truth=qresp.ground_truth,
-                    context_reference=[anchor.filename],
-                    metadata=QueryMetadata(
-                        subtype=subtype,
-                        category=qresp.category or anchor.category or "general",
-                    ),
+                subtype = choose_negative_subtype()
+                anchor_content = load_page_content(kb_dir, anchor.filename)
+                linked_cts = get_linked_page_contents(kb_dir, anchor)
+                linked_contents_joined = "\n\n---\n\n".join(linked_cts)
+                anchor_meta = (
+                    f"Title: {anchor.title}\nFilename: {anchor.filename}\nCategory: {anchor.category or 'Uncategorized'}\n"
+                    f"Primary topic: {anchor.primary_topic or 'None'}\nSecondary topics: {', '.join(anchor.secondary_topics) if anchor.secondary_topics else 'None'}"
                 )
-                if not validate_query(qobj):
-                    logger.warning("Validation failed for %s", qobj.query_id)
+
+                anchor_block = anchor_content
+                if linked_contents_joined:
+                    anchor_block = (
+                        anchor_block + "\n\n" + linked_contents_joined
+                    ).strip()
+                if len(anchor_block) > token_limit:
+                    anchor_block = anchor_block[:token_limit]
+
+                prompt = build_anchored_negative_prompt(
+                    anchor_content=anchor_block,
+                    linked_contents=linked_contents_joined,
+                    anchor_meta=anchor_meta,
+                    kb_summary=kb_summary,
+                    num_queries=1,
+                    subtype=subtype,
+                )
+
+                if dry_run:
+                    qobj = {
+                        "query_id": query_id,
+                        "query_type": "negative",
+                        "query": f"(DRY) [{subtype}] Anchor: {anchor.title}; Question: Is there an undocumented feature?",
+                        "ground_truth": "I don't know based on the KB.",
+                        "context_reference": [anchor.filename],
+                        "metadata": {
+                            "subtype": subtype,
+                            "category": anchor.category or "general",
+                        },
+                    }
+                    generated.append(qobj)
+                    out_f.write(json.dumps(qobj, ensure_ascii=False) + "\n")
+                    out_f.flush()
+                    remaining -= 1
+                    pbar.update(1)
+                    break
+
+                try:
+                    assert anchored_negative_agent is not None
+                    resp = anchored_negative_agent.run_sync(prompt)
+                    qresp = resp.output
+                    qobj = Query(
+                        query_id=query_id,
+                        query_type=QueryType.NEGATIVE,
+                        query=qresp.query,
+                        ground_truth=qresp.ground_truth,
+                        context_reference=[anchor.filename],
+                        metadata=QueryMetadata(
+                            subtype=subtype,
+                            category=qresp.category or anchor.category or "general",
+                        ),
+                    )
+                    if not validate_query(qobj):
+                        logger.warning("Validation failed for %s", qobj.query_id)
+                        attempts += 1
+                        if attempts >= MAX_ATTEMPTS:
+                            logger.warning(
+                                "Exceeded attempts for negative anchor %s; skipping",
+                                anchor.filename,
+                            )
+                            break
+                        continue
+                    parsed = json.loads(qobj.model_dump_json())
+                    generated.append(parsed)
+                    out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
+                    out_f.flush()
+                    remaining -= 1
+                    pbar.update(1)
+                    break
+                except Exception as e:
+                    logger.exception(
+                        "Failed to generate negative query for %s: %s",
+                        anchor.filename,
+                        e,
+                    )
                     attempts += 1
                     if attempts >= MAX_ATTEMPTS:
                         logger.warning(
-                            "Exceeded attempts for negative anchor %s; skipping",
+                            "Exceeded attempts for negative anchor %s (errors), skipping",
                             anchor.filename,
                         )
                         break
                     continue
-                parsed = json.loads(qobj.model_dump_json())
-                generated.append(parsed)
-                out_f.write(json.dumps(parsed, ensure_ascii=False) + "\n")
-                out_f.flush()
-                remaining -= 1
-                pbar.update(1)
-                break
-            except Exception as e:
-                logger.exception(
-                    "Failed to generate negative query for %s: %s",
-                    anchor.filename,
-                    e,
-                )
-                attempts += 1
-                if attempts >= MAX_ATTEMPTS:
-                    logger.warning(
-                        "Exceeded attempts for negative anchor %s (errors), skipping",
-                        anchor.filename,
-                    )
-                    break
-                continue
 
     return len([q for q in generated if q["query_type"] == "negative"])
 
