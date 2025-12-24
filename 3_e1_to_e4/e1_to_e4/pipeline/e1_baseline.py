@@ -1,12 +1,13 @@
 import json
 import logging
 import os
+import time
 from pathlib import Path
 from typing import List
 
 from tqdm import tqdm
 
-from ..agents import create_baseline_agent, create_openrouter_model
+from ..agents import create_e1_agent, create_openrouter_model
 from ..models import ExperimentResult, QueryInput
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def run_e1_baseline(
         if not openrouter_api_key:
             raise RuntimeError("OPENROUTER_API_KEY required when not dry-run")
         or_model = create_openrouter_model(model, openrouter_api_key)
-        agent = create_baseline_agent(or_model)
+        agent = create_e1_agent(or_model)
 
     # Process queries
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -58,13 +59,18 @@ def run_e1_baseline(
                 continue
 
             if dry_run:
+                llm_start = time.time()
                 llm_answer = "[DRY_RUN] No LLM call"
+                llm_time = (time.time() - llm_start) * 1000
             else:
                 try:
                     assert agent is not None
+                    llm_start = time.time()
                     result = agent.run_sync(query.query)
+                    llm_time = (time.time() - llm_start) * 1000
                     llm_answer = result.output.answer
                 except Exception as e:
+                    llm_time = 0.0
                     logger.exception(
                         "Failed to generate answer for query %s: %s", query.query_id, e
                     )
@@ -72,10 +78,14 @@ def run_e1_baseline(
 
             experiment_result = ExperimentResult(
                 query_id=query.query_id,
+                experiment="E1",
                 query=query.query,
+                retrieved_chunks=[],  # Empty list for E1 (no retrieval)
                 llm_answer=llm_answer,
                 ground_truth=query.ground_truth,
-                experiment="E1",
+                retrieval_time_ms=0.0,  # No retrieval in E1
+                llm_time_ms=llm_time,
+                total_time_ms=llm_time,  # Total = LLM time for E1
             )
             try:
                 out_f.write(experiment_result.model_dump_json() + "\n")

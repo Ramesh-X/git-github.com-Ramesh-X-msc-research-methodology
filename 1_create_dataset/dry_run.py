@@ -4,11 +4,12 @@ Simple script that runs the generator in dry-run mode with a small number of pag
 
 import os
 
+from create_dataset_lib import constants
 from dotenv import load_dotenv
 
 load_dotenv()
 os.environ["DRY_RUN"] = "true"
-os.environ["NUM_PAGES"] = "3"
+constants.NUM_PAGES = 3
 os.environ["KB_DIR"] = "output/kb_test"
 
 
