@@ -1,0 +1,5 @@
+pydantic-ai-slim[openrouter]
+pydantic
+tqdm
+python-dotenv
+ruff
