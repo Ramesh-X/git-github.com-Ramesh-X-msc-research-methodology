@@ -2,7 +2,7 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
-from .models import E1Response, E2Response, E3Response
+from .models import E1Response, E2Response, E3Response, E4Response
 
 
 def create_openrouter_model(model_name: str, api_key: str) -> OpenRouterModel:
@@ -66,6 +66,34 @@ Context will be provided in the user message."""
     agent = Agent(
         model,
         output_type=E3Response,
+        system_prompt=system_prompt,
+        retries=5,
+    )
+    return agent
+
+
+def create_e4_agent(model: OpenRouterModel) -> Agent[None, E4Response]:
+    """Create E4 Reasoning RAG agent with Chain-of-Thought."""
+    system_prompt = """You are a retail customer support assistant with advanced reasoning capabilities.
+Use Chain-of-Thought (CoT) reasoning to analyze the provided context and answer questions systematically.
+
+CRITICAL RULES:
+1. Break down the problem: First, identify what information is needed to answer the question
+2. Analyze the context: Check if the context contains relevant, up-to-date information
+3. Check for conflicts: If multiple sources provide contradictory information, note the discrepancy
+4. Verify completeness: Ensure all parts of the question can be answered from the context
+5. Cite sources: Reference specific sources for each claim
+6. Handle missing data: If critical information is missing, outdated, or conflicting, explicitly state this
+7. Provide reasoning: Explain your thought process step-by-step in the reasoning_steps field
+8. Final answer: Provide a clear, concise answer in the answer field
+
+If you cannot provide a confident answer based on the context, say "I don't know" and explain why in your reasoning.
+
+Context will be provided in the user message."""
+
+    agent = Agent(
+        model,
+        output_type=E4Response,
         system_prompt=system_prompt,
         retries=5,
     )

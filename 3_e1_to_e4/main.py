@@ -1,4 +1,4 @@
-"""Entrypoint for E1 and E2 experiments.
+"""Entrypoint for E1 to E4 experiments.
 
 Configuration is specified in the top section of this file. No CLI args are accepted.
 """
@@ -16,12 +16,14 @@ from e1_to_e4.constants import (
     E1_OUTPUT_FILE_NAME,
     E2_OUTPUT_FILE_NAME,
     E3_OUTPUT_FILE_NAME,
+    E4_OUTPUT_FILE_NAME,
     OPENROUTER_MODEL,
     QUERIES_FILE_NAME,
 )
 from e1_to_e4.pipeline.e1_baseline import run_e1_baseline
 from e1_to_e4.pipeline.e2_standard import run_e2_standard
 from e1_to_e4.pipeline.e3_filtered import run_e3_filtered
+from e1_to_e4.pipeline.e4_reasoning import run_e4_reasoning
 from logging_config import setup_logging
 
 # ---------------- CONFIGURATION -----------------
@@ -56,9 +58,10 @@ def main():
     e1_output = kb_dir / DATA_FOLDER / E1_OUTPUT_FILE_NAME
     e2_output = kb_dir / DATA_FOLDER / E2_OUTPUT_FILE_NAME
     e3_output = kb_dir / DATA_FOLDER / E3_OUTPUT_FILE_NAME
+    e4_output = kb_dir / DATA_FOLDER / E4_OUTPUT_FILE_NAME
 
     logger.info("=" * 80)
-    logger.info("Starting E1, E2, and E3 Experiments")
+    logger.info("Starting E1, E2, E3, and E4 Experiments")
     logger.info(f"DRY_RUN: {DRY_RUN}")
     logger.info(f"KB_DIR: {kb_dir}")
     logger.info(f"QUERIES_FILE: {queries_file}")
@@ -104,11 +107,25 @@ def main():
     )
     logger.info("E3 filtered RAG completed")
 
+    # Run E4 reasoning RAG
+    logger.info("Running E4 reasoning RAG")
+    run_e4_reasoning(
+        kb_dir=kb_dir,
+        queries_file=queries_file,
+        output_file=e4_output,
+        openrouter_api_key=OPENROUTER_API_KEY,
+        openai_api_key=OPENAI_API_KEY,
+        overwrite=OVERWRITE,
+        dry_run=DRY_RUN,
+    )
+    logger.info("E4 reasoning RAG completed")
+
     logger.info("=" * 80)
     logger.info("All experiments completed successfully")
     logger.info(f"E1 output: {e1_output}")
     logger.info(f"E2 output: {e2_output}")
     logger.info(f"E3 output: {e3_output}")
+    logger.info(f"E4 output: {e4_output}")
     logger.info("=" * 80)
 
 

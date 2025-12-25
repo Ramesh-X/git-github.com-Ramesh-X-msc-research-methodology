@@ -1,6 +1,6 @@
 from typing import List, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class QueryInput(BaseModel):
@@ -38,12 +38,20 @@ class E3Response(BaseModel):
     answer: str
 
 
+class E4Response(BaseModel):
+    """Reasoning RAG response with Chain-of-Thought."""
+
+    reasoning_steps: str = Field(description="Step-by-step reasoning process")
+    answer: str = Field(description="Final answer based on reasoning")
+
+
 class ExperimentResult(BaseModel):
     query_id: str
-    experiment: Literal["E1", "E2", "E3"]  # Strict typing - E1, E2, or E3
+    experiment: Literal["E1", "E2", "E3", "E4"]  # Strict typing - E1, E2, E3, or E4
     query: str
     retrieved_chunks: List[DocumentChunk]  # Empty list for E1
     llm_answer: str
+    reasoning_steps: str | None = None  # Only populated for E4 experiments
     ground_truth: str
     # Performance metrics
     retrieval_time_ms: float  # Will be 0.0 for E1
