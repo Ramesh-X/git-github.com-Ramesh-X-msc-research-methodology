@@ -53,7 +53,7 @@ def run_e1_baseline(
     write_mode = "w" if overwrite else "a"
     out_f = open(output_file, write_mode, encoding="utf-8")
     try:
-        for query in tqdm(queries, desc="Processing queries"):
+        for query in tqdm(queries, desc="Processing E1 queries"):
             if query.query_id in existing_ids and not overwrite:
                 logger.info("Skipping existing query_id: %s", query.query_id)
                 continue

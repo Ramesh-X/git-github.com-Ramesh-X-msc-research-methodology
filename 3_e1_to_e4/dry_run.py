@@ -1,5 +1,5 @@
 """
-Simple script that runs E1 baseline in dry-run mode for testing.
+Simple script that runs E1-E3 experiments in dry-run mode for testing.
 """
 
 import os

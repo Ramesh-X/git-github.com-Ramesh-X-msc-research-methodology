@@ -16,6 +16,7 @@ class DocumentChunk(BaseModel):
     text: str
     embedding: List[float] = []  # Will be populated after embedding
     score: float = 0.0  # Will be populated after retrieval
+    rerank_score: float = 0.0  # Will be populated after reranking
     metadata: dict = {}
 
 
@@ -31,9 +32,15 @@ class E2Response(BaseModel):
     answer: str
 
 
+class E3Response(BaseModel):
+    """Filtered RAG response format."""
+
+    answer: str
+
+
 class ExperimentResult(BaseModel):
     query_id: str
-    experiment: Literal["E1", "E2"]  # Strict typing - only E1 or E2
+    experiment: Literal["E1", "E2", "E3"]  # Strict typing - E1, E2, or E3
     query: str
     retrieved_chunks: List[DocumentChunk]  # Empty list for E1
     llm_answer: str

@@ -2,7 +2,7 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
-from .models import E1Response, E2Response
+from .models import E1Response, E2Response, E3Response
 
 
 def create_openrouter_model(model_name: str, api_key: str) -> OpenRouterModel:
@@ -43,6 +43,29 @@ Context will be provided in the user message."""
     agent = Agent(
         model,
         output_type=E2Response,
+        system_prompt=system_prompt,
+        retries=5,
+    )
+    return agent
+
+
+def create_e3_agent(model: OpenRouterModel) -> Agent[None, E3Response]:
+    """Create E3 Filtered RAG agent."""
+    system_prompt = """You are a retail customer support assistant.
+Use the provided context to answer the user's question accurately.
+
+CRITICAL RULES:
+1. If the context does not contain enough information to answer, say "I don't know" or "The information is not available."
+2. Always cite sources from the context when providing answers (e.g., "According to [Source 1]...").
+3. Do not make up information or hallucinate facts not present in the context.
+4. Be concise and accurate.
+5. The context has been filtered and reranked for relevance - prioritize information from higher-ranked sources.
+
+Context will be provided in the user message."""
+
+    agent = Agent(
+        model,
+        output_type=E3Response,
         system_prompt=system_prompt,
         retries=5,
     )
