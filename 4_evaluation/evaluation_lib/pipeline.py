@@ -25,9 +25,8 @@ from .constants import (
 )
 from .metrics_calculator import (
     calculate_experiment_metrics,
-    calculate_latency_metrics_from_experiments,
     calculate_pareto_optimality,
-    update_accuracy_gain_per_ms,
+    update_accuracy_gain_vs_baseline,
 )
 from .models import QueryEvaluationResult
 from .ragas_evaluator import evaluate_batch
@@ -189,27 +188,10 @@ def run_evaluation_pipeline(
                     exp_pbar.update(1)
                     continue
 
-                # Calculate latency metrics from original experiment results
-                mean_retrieval, mean_llm, mean_total = (
-                    calculate_latency_metrics_from_experiments(experiment_results)
-                )
-
                 # Calculate experiment metrics
-                # For now, we don't have baseline time, will update later in cross-experiment analysis
                 metrics = calculate_experiment_metrics(
-                    all_evaluation_results, experiment, baseline_mean_time_ms=None
+                    all_evaluation_results, experiment, experiment_results
                 )
-
-                # Update latency metrics (these were placeholders in calculate_experiment_metrics)
-                metrics.mean_retrieval_time_ms = mean_retrieval
-                metrics.mean_llm_time_ms = mean_llm
-                metrics.mean_total_time_ms = mean_total
-
-                # Recalculate quality-time efficiency with real latency data
-                if mean_total > 0:
-                    metrics.quality_time_efficiency = (
-                        metrics.mean_geometric_mean / mean_total
-                    )
 
                 # Save metrics
                 save_metrics(metrics, metrics_output_path)
@@ -229,11 +211,11 @@ def run_evaluation_pipeline(
     if all_metrics:
         logger.info("Performing cross-experiment analysis")
 
-        # Update accuracy gain per ms based on E1 baseline
-        all_metrics = update_accuracy_gain_per_ms(all_metrics)
+        # Update accuracy gain vs baseline based on E1 baseline
+        update_accuracy_gain_vs_baseline(all_metrics)
 
         # Calculate Pareto optimality
-        all_metrics = calculate_pareto_optimality(all_metrics)
+        calculate_pareto_optimality(all_metrics)
 
         # Update metrics files with final calculations
         for metrics in all_metrics:
