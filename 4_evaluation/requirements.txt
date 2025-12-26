@@ -1,0 +1,10 @@
+pydantic
+tqdm
+python-dotenv
+ruff
+ragas
+langchain-openai
+langchain-core
+openai
+datasets
+numpy
