@@ -148,9 +148,9 @@ def calculate_latency_metrics_from_experiments(
     llm_times = [r.llm_time_ms for r in experiment_results]
     total_times = [r.total_time_ms for r in experiment_results]
 
-    mean_retrieval = np.mean(retrieval_times)
-    mean_llm = np.mean(llm_times)
-    mean_total = np.mean(total_times)
+    mean_retrieval = float(np.mean(retrieval_times))
+    mean_llm = float(np.mean(llm_times))
+    mean_total = float(np.mean(total_times))
 
     return mean_retrieval, mean_llm, mean_total
 

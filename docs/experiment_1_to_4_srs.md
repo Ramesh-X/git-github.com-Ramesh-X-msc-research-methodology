@@ -123,9 +123,7 @@ Evaluate four progressively sophisticated RAG pipeline architectures to systemat
   "ground_truth": "14 days from delivery.",
   "retrieval_time_ms": 0.0,
   "llm_time_ms": 850.5,
-  "total_time_ms": 850.5,
-  "model": "amazon/nova-2-lite-v1:free",
-  "dry_run": false
+  "total_time_ms": 850.5
 }
 ```
 

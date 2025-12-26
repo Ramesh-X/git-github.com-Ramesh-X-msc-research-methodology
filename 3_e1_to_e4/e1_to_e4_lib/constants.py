@@ -13,7 +13,7 @@ DEFAULT_DRY_RUN = "false"
 DEFAULT_OVERWRITE = "false"
 
 # Model configurations
-OPENROUTER_MODEL = "amazon/nova-2-lite-v1:free"
+OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct"
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIM = 1536  # dimension for text-embedding-3-small
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"

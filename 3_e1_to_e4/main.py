@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from e1_to_e4.constants import (
+from e1_to_e4_lib.constants import (
     DATA_FOLDER,
     DEFAULT_DRY_RUN,
     DEFAULT_KB_DIR,
@@ -20,10 +20,10 @@ from e1_to_e4.constants import (
     OPENROUTER_MODEL,
     QUERIES_FILE_NAME,
 )
-from e1_to_e4.pipeline.e1_baseline import run_e1_baseline
-from e1_to_e4.pipeline.e2_standard import run_e2_standard
-from e1_to_e4.pipeline.e3_filtered import run_e3_filtered
-from e1_to_e4.pipeline.e4_reasoning import run_e4_reasoning
+from e1_to_e4_lib.pipeline.e1_baseline import run_e1_baseline
+from e1_to_e4_lib.pipeline.e2_standard import run_e2_standard
+from e1_to_e4_lib.pipeline.e3_filtered import run_e3_filtered
+from e1_to_e4_lib.pipeline.e4_reasoning import run_e4_reasoning
 from logging_config import setup_logging
 
 # ---------------- CONFIGURATION -----------------
