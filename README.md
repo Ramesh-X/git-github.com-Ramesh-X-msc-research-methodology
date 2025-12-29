@@ -48,7 +48,7 @@ The project is organized into sequential steps (e.g., `1_create_dataset`, `2_que
 - `2_query_generation`: Generates queries based on the dataset.
 - `3_e1_to_e4`: Implements E1 to E4 experiments using a RAG pipeline with components for embeddings, knowledge base loading, vector storage, reranking, and output validation.
 - `4_evaluation`: Evaluates the outputs from previous steps.
-- *(Future steps will follow the same structure)*
+- `5_results`: Compiles the final results as json and image files.
 
 ## Important Notes
 - Always run commands from the root directory of the project. Do not change directories into the step folders.

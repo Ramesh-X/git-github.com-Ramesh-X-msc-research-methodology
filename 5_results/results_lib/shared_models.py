@@ -1,4 +1,5 @@
-# evaluation_lib/models.py
+# results_lib/shared_models.py
+# Copied from evaluation_lib/models.py to avoid import issues
 
 from typing import Literal
 

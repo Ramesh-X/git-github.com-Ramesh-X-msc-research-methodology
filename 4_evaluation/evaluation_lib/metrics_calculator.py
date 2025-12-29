@@ -103,6 +103,51 @@ def compute_cliffs_delta(sample1: List[float], sample2: List[float]) -> float:
     return float((greater_count - lesser_count) / total_pairs)
 
 
+def safe_corrcoef(x: List[float], y: List[float]) -> float | None:
+    """
+    Safely compute Pearson correlation coefficient between two arrays.
+
+    Handles edge cases:
+    - Arrays with zero variance (all values are identical)
+    - Arrays with NaN or infinite values
+    - Arrays with insufficient data
+
+    Returns:
+        Correlation coefficient between -1 and 1, or None if computation is invalid
+    """
+    if len(x) != len(y) or len(x) < 2:
+        return None
+
+    arr_x = np.array(x)
+    arr_y = np.array(y)
+
+    # Check for NaN or infinite values
+    if np.any(~np.isfinite(arr_x)) or np.any(~np.isfinite(arr_y)):
+        logger.warning("NaN or infinite values detected in correlation computation")
+        return None
+
+    # Check for zero variance (all values are the same)
+    if np.std(arr_x) == 0.0 or np.std(arr_y) == 0.0:
+        # If both arrays are constant, correlation is undefined (return None)
+        # If only one is constant, correlation is also undefined
+        return None
+
+    # Compute correlation safely
+    with np.errstate(invalid="raise", divide="raise"):
+        try:
+            corr_matrix = np.corrcoef(arr_x, arr_y)
+            corr_value = float(corr_matrix[0, 1])
+
+            # Validate result
+            if not np.isfinite(corr_value):
+                return None
+
+            return corr_value
+        except (FloatingPointError, ValueError) as e:
+            logger.warning(f"Error computing correlation: {e}")
+            return None
+
+
 def compute_brier_score(faithfulness_scores: List[float]) -> float:
     """Compute Brier score for calibration assessment."""
     # For simplicity, use faithfulness as a proxy for correctness
@@ -391,17 +436,11 @@ def calculate_experiment_metrics(
 
     # === CATEGORY 8: CORRELATIONS ===
     correlation_analysis = CorrelationAnalysis(
-        cp_vs_ar=float(
-            np.corrcoef(context_precision_scores, answer_relevancy_scores)[0, 1]
-        ),
-        cp_vs_gmean=float(
-            np.corrcoef(context_precision_scores, geometric_mean_scores)[0, 1]
-        ),
-        f_vs_ar=float(np.corrcoef(faithfulness_scores, answer_relevancy_scores)[0, 1]),
+        cp_vs_ar=safe_corrcoef(context_precision_scores, answer_relevancy_scores),
+        cp_vs_gmean=safe_corrcoef(context_precision_scores, geometric_mean_scores),
+        f_vs_ar=safe_corrcoef(faithfulness_scores, answer_relevancy_scores),
         latency_vs_gmean=(
-            float(np.corrcoef(total_times, geometric_mean_scores)[0, 1])
-            if total_times
-            else None
+            safe_corrcoef(total_times, geometric_mean_scores) if total_times else None
         ),
         context_len_vs_hri=None,  # Would need context length data
     )

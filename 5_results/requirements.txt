@@ -1,0 +1,9 @@
+pydantic
+tqdm
+python-dotenv
+ruff
+matplotlib
+seaborn
+numpy
+scipy
+pandas
